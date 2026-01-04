@@ -42,9 +42,10 @@ export class MovementStateMachine {
   /**
    * Select a token and transition to AWAITING_DESTINATION
    * @param {Token} token - The token to select
+   * @param {RulerPreview} rulerPreview - The ruler preview handler for visual feedback
    * @returns {Boolean} - True if selection successful
    */
-  selectToken(token) {
+  selectToken(token, rulerPreview) {
     // Validate permissions
     if (!utils.canMoveToken(token)) {
       ui.notifications.warn(game.i18n.localize('shared-control.notifications.noPermission'));
@@ -63,6 +64,11 @@ export class MovementStateMachine {
 
     // Control the token
     token.control({ releaseOthers: true });
+
+    // Show visual highlight
+    if (rulerPreview) {
+      rulerPreview.showSelectionHighlight(token);
+    }
 
     this.selectedToken = token;
     this.currentState = States.AWAITING_DESTINATION;
@@ -147,7 +153,7 @@ export class MovementStateMachine {
       await rulerPreview.confirmMovement();
 
       // Success - return to idle
-      this.reset();
+      this.reset(rulerPreview);
       debugLog('Movement executed successfully');
       return true;
 
@@ -176,7 +182,7 @@ export class MovementStateMachine {
     }
 
     // Reset to idle
-    this.reset();
+    this.reset(rulerPreview);
   }
 
   /**
@@ -239,8 +245,14 @@ export class MovementStateMachine {
 
   /**
    * Reset the state machine to IDLE
+   * @param {RulerPreview} rulerPreview - The ruler preview handler for clearing visual feedback
    */
-  reset() {
+  reset(rulerPreview) {
+    // Clear visual highlight
+    if (rulerPreview) {
+      rulerPreview.clearSelectionHighlight();
+    }
+
     this.currentState = States.IDLE;
     this.selectedToken = null;
     this.previewDestination = null;
@@ -257,9 +269,10 @@ export class MovementStateMachine {
 
   /**
    * Clean up when module is disabled
+   * @param {RulerPreview} rulerPreview - The ruler preview handler
    */
-  destroy() {
-    this.reset();
+  destroy(rulerPreview) {
+    this.reset(rulerPreview);
     this.lockedTokens.clear();
   }
 }

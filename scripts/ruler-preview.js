@@ -15,6 +15,80 @@ export class RulerPreview {
     this.distanceText = null; // PIXI.Text for displaying distance
     this.currentPath = []; // Store the current grid path for movement
     this.debugGraphics = null; // PIXI.Graphics for debug visualization
+    this.selectionGraphics = null; // PIXI.Graphics for token selection highlight
+    this.selectionAnimation = null; // Animation frame ID for pulsing effect
+  }
+
+  /**
+   * Show selection highlight around a token
+   * @param {Token} token - The token to highlight
+   */
+  showSelectionHighlight(token) {
+    this.clearSelectionHighlight();
+
+    if (!token) return;
+
+    // Create graphics for selection highlight
+    this.selectionGraphics = new PIXI.Graphics();
+    canvas.controls.addChild(this.selectionGraphics);
+
+    // Store token reference for animation
+    this._highlightedToken = token;
+
+    // Start pulsing animation
+    let pulsePhase = 0;
+    const animate = () => {
+      if (!this.selectionGraphics || !this._highlightedToken) return;
+
+      this.selectionGraphics.clear();
+
+      // Get token bounds
+      const tokenX = this._highlightedToken.x;
+      const tokenY = this._highlightedToken.y;
+      const tokenW = this._highlightedToken.w || this._highlightedToken.width;
+      const tokenH = this._highlightedToken.h || this._highlightedToken.height;
+
+      // Calculate pulse effect (oscillates between 0.6 and 1.0)
+      pulsePhase += 0.05;
+      const pulse = 0.8 + 0.2 * Math.sin(pulsePhase);
+      const glowSize = 8 + 4 * Math.sin(pulsePhase);
+
+      // Draw outer glow
+      this.selectionGraphics.lineStyle(glowSize, 0x00FFFF, 0.3 * pulse);
+      this.selectionGraphics.drawRoundedRect(
+        tokenX - glowSize/2,
+        tokenY - glowSize/2,
+        tokenW + glowSize,
+        tokenH + glowSize,
+        8
+      );
+
+      // Draw inner border
+      this.selectionGraphics.lineStyle(3, 0x00FFFF, 0.8 * pulse);
+      this.selectionGraphics.drawRoundedRect(tokenX - 2, tokenY - 2, tokenW + 4, tokenH + 4, 4);
+
+      this.selectionAnimation = requestAnimationFrame(animate);
+    };
+
+    animate();
+    debugLog('Selection highlight shown for', token.name);
+  }
+
+  /**
+   * Clear selection highlight
+   */
+  clearSelectionHighlight() {
+    if (this.selectionAnimation) {
+      cancelAnimationFrame(this.selectionAnimation);
+      this.selectionAnimation = null;
+    }
+
+    if (this.selectionGraphics) {
+      this.selectionGraphics.destroy();
+      this.selectionGraphics = null;
+    }
+
+    this._highlightedToken = null;
   }
 
   /**
@@ -1060,6 +1134,7 @@ export class RulerPreview {
   destroy() {
     this.clearPreview();
     this.clearDebugView();
+    this.clearSelectionHighlight();
 
     // Destroy graphics object
     if (this.graphics) {

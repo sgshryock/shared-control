@@ -93,14 +93,15 @@ class SharedControl {
       this.touchWorkflow = null;
     }
 
+    // Destroy stateMachine first (needs rulerPreview for cleanup)
+    if (this.stateMachine) {
+      this.stateMachine.destroy(this.rulerPreview);
+      this.stateMachine = null;
+    }
+
     if (this.rulerPreview) {
       this.rulerPreview.destroy();
       this.rulerPreview = null;
-    }
-
-    if (this.stateMachine) {
-      this.stateMachine.destroy();
-      this.stateMachine = null;
     }
   }
 }
@@ -161,7 +162,7 @@ function wrapTokenMethodsEarly() {
     // Select this token (either from IDLE or after canceling previous workflow)
     debugLog('Selecting token:', token.name);
     if (stateMachine) {
-      stateMachine.selectToken(token);
+      stateMachine.selectToken(token, rulerPreview);
     }
     return wrapped.call(this, event); // Allow default control behavior
   };

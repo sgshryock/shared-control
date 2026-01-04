@@ -83,7 +83,7 @@ export class TouchWorkflowHandler {
     // Reset on scene change
     const canvasReadyHook = Hooks.on('canvasReady', () => {
       debugLog('Canvas ready, resetting state');
-      this.stateMachine.reset();
+      this.stateMachine.reset(this.rulerPreview);
       this.rulerPreview.clearPreview();
     });
     this.hooks.push({ name: 'canvasReady', id: canvasReadyHook });
