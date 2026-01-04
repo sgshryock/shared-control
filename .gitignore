@@ -1,1 +1,15 @@
+# Claude Code
 .claude
+
+# Release artifacts
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+.vscode/
+.idea/
