@@ -1,0 +1,47 @@
+{
+  "shared-control": {
+    "settings": {
+      "enabled": {
+        "name": "Enable SharedControl",
+        "hint": "Master toggle to enable or disable the SharedControl module."
+      },
+      "touchOnlyMode": {
+        "name": "Hide Cursor (Touch-Only Mode)",
+        "hint": "Hides the mouse cursor for dedicated touch screen setups. The tap workflow works for both mouse and touch when the module is enabled."
+      },
+      "tapTimeout": {
+        "name": "Path Preview Timeout",
+        "hint": "How long in milliseconds the movement path preview stays active before expiring. Tap the token to cancel, or tap the destination again to confirm. Default: 5 minutes (300000ms)."
+      },
+      "tapTolerance": {
+        "name": "Tap Tolerance",
+        "hint": "Distance in pixels for determining if two taps are in the same location (default: 25px)."
+      },
+      "animationSpeed": {
+        "name": "Animation Speed",
+        "hint": "Duration in milliseconds for each grid square during token movement animation (default: 200ms). Lower = faster."
+      },
+      "debugMode": {
+        "name": "Debug Mode",
+        "hint": "Enable verbose console logging for troubleshooting. Disable for normal use."
+      }
+    },
+    "notifications": {
+      "libWrapperMissing": "SharedControl recommends the libWrapper module for best compatibility with other modules.",
+      "touchVTTDetected": "SharedControl detected TouchVTT is active. Some features may overlap.",
+      "insufficientMovement": "Insufficient movement remaining for this action.",
+      "movementBlocked": "No valid path to that location. The destination may be blocked by walls or unreachable.",
+      "outOfBounds": "That location is outside the map boundaries.",
+      "noVisibility": "You cannot see that location.",
+      "noPermission": "You do not have permission to move that token.",
+      "tokenLocked": "{user} is currently moving that token."
+    },
+    "ui": {
+      "confirmTitle": "Confirm Movement",
+      "distance": "Distance",
+      "cost": "Movement Cost",
+      "tapToConfirm": "Tap again to confirm",
+      "tapTokenToCancel": "Tap token to cancel"
+    }
+  }
+}

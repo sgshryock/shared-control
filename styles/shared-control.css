@@ -1,0 +1,186 @@
+/**
+ * SharedControl Styles
+ * Visual feedback for touch screen token movement
+ */
+
+/* Use CSS Layers for v13 compatibility */
+@layer shared-control {
+
+  /* Selected token highlight */
+  .token.controlled[data-shared-control-active="true"] {
+    filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.8))
+            drop-shadow(0 0 20px rgba(0, 255, 255, 0.6));
+    animation: shared-control-pulse 1.5s ease-in-out infinite;
+  }
+
+  /* Pulse animation for selected token */
+  @keyframes shared-control-pulse {
+    0%, 100% {
+      filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.8))
+              drop-shadow(0 0 20px rgba(0, 255, 255, 0.6));
+    }
+    50% {
+      filter: drop-shadow(0 0 15px rgba(0, 255, 255, 1.0))
+              drop-shadow(0 0 30px rgba(0, 255, 255, 0.8));
+    }
+  }
+
+  /* Token in preview mode (slightly transparent) */
+  .token[data-shared-control-preview="true"] {
+    opacity: 0.8;
+  }
+
+  /* Confirmation UI overlay */
+  .shared-control-confirm {
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid #00cccc;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #ffffff;
+    font-family: 'Signika', sans-serif;
+    font-size: 14px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .shared-control-confirm p {
+    margin: 4px 0;
+  }
+
+  .shared-control-confirm strong {
+    color: #00cccc;
+  }
+
+  /* Touch-only mode indicator */
+  body.shared-control-touch-only {
+    cursor: none !important;
+  }
+
+  body.shared-control-touch-only * {
+    cursor: none !important;
+  }
+
+  /* Ruler path styling for preview mode */
+  .ruler.shared-control-preview .ruler-segment {
+    stroke: #00cccc;
+    stroke-width: 4;
+    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
+  }
+
+  /* Ruler waypoint styling */
+  .ruler.shared-control-preview .ruler-waypoint {
+    fill: #00cccc;
+    stroke: #ffffff;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
+  }
+
+  /* Destination indicator */
+  .shared-control-destination {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 3px solid #00cccc;
+    border-radius: 50%;
+    background: rgba(0, 255, 255, 0.2);
+    animation: shared-control-destination-pulse 1s ease-in-out infinite;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.6),
+                inset 0 0 10px rgba(0, 255, 255, 0.4);
+  }
+
+  @keyframes shared-control-destination-pulse {
+    0%, 100% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.15);
+      opacity: 1;
+    }
+  }
+
+  /* Cancel zone indicator (around original position) */
+  .shared-control-cancel-zone {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border: 2px dashed #ff4444;
+    border-radius: 50%;
+    background: rgba(255, 68, 68, 0.1);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    animation: shared-control-cancel-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes shared-control-cancel-pulse {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+
+  /* Error state flash */
+  .shared-control-error-flash {
+    animation: shared-control-error 0.5s ease-out;
+  }
+
+  @keyframes shared-control-error {
+    0%, 100% {
+      filter: brightness(1);
+    }
+    50% {
+      filter: brightness(1.5) drop-shadow(0 0 20px rgba(255, 68, 68, 1));
+    }
+  }
+
+  /* Loading/executing animation */
+  .shared-control-executing {
+    pointer-events: none;
+    animation: shared-control-executing 0.3s ease-out;
+  }
+
+  @keyframes shared-control-executing {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Notification styling for confirmation messages */
+  .notification.shared-control-confirm {
+    background: linear-gradient(135deg, rgba(0, 204, 204, 0.15), rgba(0, 153, 153, 0.25));
+    border-left: 4px solid #00cccc;
+  }
+
+  /* Touch feedback ripple effect */
+  .shared-control-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(0, 255, 255, 0.4);
+    animation: shared-control-ripple 0.6s ease-out;
+    pointer-events: none;
+  }
+
+  @keyframes shared-control-ripple {
+    0% {
+      transform: scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+}
