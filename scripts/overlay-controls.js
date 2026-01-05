@@ -10,9 +10,11 @@ export class OverlayControls {
     this.container = null;
     this.controlPanel = null;
     this.lockButton = null;
+    this.broadcastButton = null;
     this.panInterval = null;
     this.isVisible = false;
     this.isLocked = false;
+    this.isBroadcasting = false;
     this.fadeTimeout = null;
     this.fadeDelay = 5000; // 5 seconds
   }
@@ -88,6 +90,20 @@ export class OverlayControls {
 
     this.container.appendChild(this.controlPanel);
 
+    // Create button container for lock and broadcast
+    const buttonRow = document.createElement('div');
+    buttonRow.className = 'shared-control-button-row';
+
+    // Create broadcast button (GM only)
+    if (game.user.isGM) {
+      this.broadcastButton = document.createElement('button');
+      this.broadcastButton.className = 'shared-control-btn shared-control-broadcast-btn';
+      this.broadcastButton.dataset.action = 'toggle-broadcast';
+      this.broadcastButton.title = 'Broadcast View to Players';
+      this.broadcastButton.innerHTML = '<i class="fas fa-broadcast-tower"></i>';
+      buttonRow.appendChild(this.broadcastButton);
+    }
+
     // Create lock button (only for users with permission)
     if (this.canSeeLockButton()) {
       this.lockButton = document.createElement('button');
@@ -95,7 +111,12 @@ export class OverlayControls {
       this.lockButton.dataset.action = 'toggle-lock';
       this.lockButton.title = 'Lock/Unlock Controls';
       this.lockButton.innerHTML = '<i class="fas fa-lock-open"></i>';
-      this.controlPanel.appendChild(this.lockButton);
+      buttonRow.appendChild(this.lockButton);
+    }
+
+    // Only add button row if it has buttons
+    if (buttonRow.children.length > 0) {
+      this.controlPanel.appendChild(buttonRow);
     }
 
     // Add to DOM
@@ -183,9 +204,14 @@ export class OverlayControls {
    * @param {Boolean} isStart - True if action is starting, false if ending
    */
   handleAction(action, isStart) {
-    // Lock toggle always works
+    // Lock and broadcast toggles always work
     if (action === 'toggle-lock') {
       if (isStart) this.toggleLock();
+      return;
+    }
+
+    if (action === 'toggle-broadcast') {
+      if (isStart) this.toggleBroadcast();
       return;
     }
 
@@ -217,6 +243,29 @@ export class OverlayControls {
         if (isStart) this.centerOnToken();
         break;
     }
+  }
+
+  /**
+   * Toggle broadcast mode
+   */
+  toggleBroadcast() {
+    if (!game.user.isGM) return;
+
+    this.isBroadcasting = !this.isBroadcasting;
+
+    if (this.broadcastButton) {
+      if (this.isBroadcasting) {
+        this.broadcastButton.classList.add('active');
+        this.broadcastButton.innerHTML = '<i class="fas fa-broadcast-tower"></i>';
+        ui.notifications.info('Broadcast mode enabled - your view will be synced to all players');
+      } else {
+        this.broadcastButton.classList.remove('active');
+        this.broadcastButton.innerHTML = '<i class="fas fa-broadcast-tower"></i>';
+        ui.notifications.info('Broadcast mode disabled');
+      }
+    }
+
+    debugLog('Broadcast mode:', this.isBroadcasting);
   }
 
   /**
@@ -280,16 +329,19 @@ export class OverlayControls {
     const maxScale = CONFIG.Canvas.maxZoom ?? 3;
     newScale = Math.max(minScale, Math.min(maxScale, newScale));
 
-    // Get the center of the viewport for zoom focus
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-
-    canvas.animatePan({
+    const panData = {
       x: canvas.stage.pivot.x,
       y: canvas.stage.pivot.y,
       scale: newScale,
       duration: 100
-    });
+    };
+
+    canvas.animatePan(panData);
+
+    // Broadcast to players if enabled
+    if (this.isBroadcasting && game.user.isGM) {
+      game.sharedControl.broadcastPan(panData);
+    }
 
     debugLog('Zoom', direction > 0 ? 'in' : 'out', 'to scale:', newScale);
   }
@@ -363,11 +415,19 @@ export class OverlayControls {
         break;
     }
 
-    canvas.animatePan({
+    const panData = {
       x: newX,
       y: newY,
+      scale: scale,
       duration: 50
-    });
+    };
+
+    canvas.animatePan(panData);
+
+    // Broadcast to players if enabled
+    if (this.isBroadcasting && game.user.isGM) {
+      game.sharedControl.broadcastPan(panData);
+    }
   }
 
   /**
@@ -394,23 +454,36 @@ export class OverlayControls {
       );
     }
 
+    let panData;
+
     if (token) {
-      canvas.animatePan({
+      panData = {
         x: token.center.x,
         y: token.center.y,
+        scale: canvas.stage.scale.x,
         duration: 250
-      });
+      };
       debugLog('Centered on token:', token.name);
     } else {
       // No token found, center on scene
       const scene = canvas.scene;
       if (scene) {
-        canvas.animatePan({
+        panData = {
           x: scene.width / 2,
           y: scene.height / 2,
+          scale: canvas.stage.scale.x,
           duration: 250
-        });
+        };
         debugLog('Centered on scene');
+      }
+    }
+
+    if (panData) {
+      canvas.animatePan(panData);
+
+      // Broadcast to players if enabled
+      if (this.isBroadcasting && game.user.isGM) {
+        game.sharedControl.broadcastPan(panData);
       }
     }
   }

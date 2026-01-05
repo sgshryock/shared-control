@@ -324,10 +324,49 @@
     background: rgba(0, 120, 120, 0.8);
   }
 
+  /* Button row for lock and broadcast */
+  .shared-control-button-row {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  .shared-control-button-row .shared-control-btn {
+    flex: 1;
+  }
+
+  /* Broadcast button styling */
+  .shared-control-broadcast-btn {
+    background: rgba(60, 60, 80, 0.7);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .shared-control-broadcast-btn.active {
+    background: rgba(60, 140, 60, 0.8);
+    border-color: #66ff66;
+    color: #66ff66;
+    animation: shared-control-broadcast-pulse 1.5s ease-in-out infinite;
+  }
+
+  .shared-control-broadcast-btn:hover {
+    background: rgba(80, 80, 100, 0.8);
+  }
+
+  .shared-control-broadcast-btn.active:hover {
+    background: rgba(80, 160, 80, 0.9);
+  }
+
+  @keyframes shared-control-broadcast-pulse {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(102, 255, 102, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(102, 255, 102, 0.8);
+    }
+  }
+
   /* Lock button styling */
   .shared-control-lock-btn {
-    margin-top: 8px;
-    width: 100%;
     background: rgba(60, 60, 80, 0.7);
     border-color: rgba(255, 255, 255, 0.4);
   }

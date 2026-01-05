@@ -24,6 +24,7 @@ class SharedControl {
     this.touchWorkflow = null;
     this.overlayControls = null;
     this.compatibility = null;
+    this.socket = null;
   }
 
   /**
@@ -57,6 +58,9 @@ class SharedControl {
       this.overlayControls = new OverlayControls();
       this.overlayControls.initialize();
 
+      // Setup socket for broadcast functionality
+      this.setupSocket();
+
       // Attach canvas listener if canvas is already ready
       if (canvas?.stage) {
         debugLog('Canvas already ready, attaching listener now');
@@ -69,6 +73,50 @@ class SharedControl {
       // Clean up on error
       this.destroy();
     }
+  }
+
+  /**
+   * Setup socket for GM broadcast functionality
+   */
+  setupSocket() {
+    this.socket = game.socket;
+
+    // Listen for broadcast commands from GM
+    this.socket.on('module.shared-control', (data) => {
+      debugLog('Received socket message:', data);
+
+      // Only non-GMs should respond to broadcasts
+      if (game.user.isGM) return;
+
+      if (data.action === 'pan') {
+        canvas.animatePan({
+          x: data.x,
+          y: data.y,
+          scale: data.scale,
+          duration: data.duration || 250
+        });
+      }
+    });
+
+    debugLog('Socket listener registered');
+  }
+
+  /**
+   * Broadcast pan/zoom to all players (GM only)
+   * @param {Object} panData - Pan data {x, y, scale, duration}
+   */
+  broadcastPan(panData) {
+    if (!game.user.isGM) return;
+
+    this.socket.emit('module.shared-control', {
+      action: 'pan',
+      x: panData.x,
+      y: panData.y,
+      scale: panData.scale,
+      duration: panData.duration || 250
+    });
+
+    debugLog('Broadcast pan:', panData);
   }
 
   /**
