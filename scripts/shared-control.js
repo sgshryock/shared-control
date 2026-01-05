@@ -10,6 +10,7 @@ import { registerSettings } from './settings.js';
 import { MovementStateMachine } from './state-machine.js';
 import { RulerPreview } from './ruler-preview.js';
 import { TouchWorkflowHandler } from './touch-workflow.js';
+import { OverlayControls } from './overlay-controls.js';
 import { checkCompatibility } from './compat.js';
 import { debugLog } from './utils.js';
 
@@ -21,6 +22,7 @@ class SharedControl {
     this.stateMachine = null;
     this.rulerPreview = null;
     this.touchWorkflow = null;
+    this.overlayControls = null;
     this.compatibility = null;
   }
 
@@ -49,6 +51,11 @@ class SharedControl {
       // Initialize touch workflow
       debugLog('Initializing touch workflow');
       this.touchWorkflow.initialize();
+
+      // Initialize overlay controls
+      debugLog('Initializing overlay controls');
+      this.overlayControls = new OverlayControls();
+      this.overlayControls.initialize();
 
       // Attach canvas listener if canvas is already ready
       if (canvas?.stage) {
@@ -91,6 +98,11 @@ class SharedControl {
     if (this.touchWorkflow) {
       this.touchWorkflow.destroy();
       this.touchWorkflow = null;
+    }
+
+    if (this.overlayControls) {
+      this.overlayControls.destroy();
+      this.overlayControls = null;
     }
 
     // Destroy stateMachine first (needs rulerPreview for cleanup)

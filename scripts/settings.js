@@ -95,4 +95,108 @@ export function registerSettings() {
     type: Boolean,
     default: false
   });
+
+  // World setting: Enable touch gestures for pan/zoom
+  game.settings.register('shared-control', 'enableGestures', {
+    name: game.i18n.localize('shared-control.settings.enableGestures.name'),
+    hint: game.i18n.localize('shared-control.settings.enableGestures.hint'),
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+
+  // World setting: Controls locked state
+  game.settings.register('shared-control', 'controlsLocked', {
+    name: 'Controls Locked',
+    hint: 'Internal setting to track lock state',
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateLockState(value);
+      }
+    }
+  });
+
+  // World setting: Roles that can see the lock button
+  game.settings.register('shared-control', 'lockButtonRoles', {
+    name: game.i18n.localize('shared-control.settings.lockButtonRoles.name'),
+    hint: game.i18n.localize('shared-control.settings.lockButtonRoles.hint'),
+    scope: 'world',
+    config: true,
+    type: Number,
+    default: CONST.USER_ROLES.GAMEMASTER,
+    choices: {
+      [CONST.USER_ROLES.PLAYER]: game.i18n.localize('shared-control.settings.lockButtonRoles.player'),
+      [CONST.USER_ROLES.TRUSTED]: game.i18n.localize('shared-control.settings.lockButtonRoles.trusted'),
+      [CONST.USER_ROLES.ASSISTANT]: game.i18n.localize('shared-control.settings.lockButtonRoles.assistant'),
+      [CONST.USER_ROLES.GAMEMASTER]: game.i18n.localize('shared-control.settings.lockButtonRoles.gm')
+    }
+  });
+
+  // User setting: Show overlay controls (zoom/pan buttons)
+  game.settings.register('shared-control', 'showOverlayControls', {
+    name: game.i18n.localize('shared-control.settings.showOverlayControls.name'),
+    hint: game.i18n.localize('shared-control.settings.showOverlayControls.hint'),
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        if (value) {
+          game.sharedControl.overlayControls.show();
+        } else {
+          game.sharedControl.overlayControls.hide();
+        }
+      }
+    }
+  });
+
+  // User setting: Overlay button size
+  game.settings.register('shared-control', 'overlayButtonSize', {
+    name: game.i18n.localize('shared-control.settings.overlayButtonSize.name'),
+    hint: game.i18n.localize('shared-control.settings.overlayButtonSize.hint'),
+    scope: 'client',
+    config: true,
+    type: Number,
+    default: 50,
+    range: {
+      min: 30,
+      max: 80,
+      step: 5
+    },
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateButtonSize(value);
+      }
+    }
+  });
+
+  // User setting: Overlay position
+  game.settings.register('shared-control', 'overlayPosition', {
+    name: game.i18n.localize('shared-control.settings.overlayPosition.name'),
+    hint: game.i18n.localize('shared-control.settings.overlayPosition.hint'),
+    scope: 'client',
+    config: true,
+    type: String,
+    default: 'left-center',
+    choices: {
+      'left-top': game.i18n.localize('shared-control.settings.overlayPosition.leftTop'),
+      'left-center': game.i18n.localize('shared-control.settings.overlayPosition.leftCenter'),
+      'left-bottom': game.i18n.localize('shared-control.settings.overlayPosition.leftBottom'),
+      'right-top': game.i18n.localize('shared-control.settings.overlayPosition.rightTop'),
+      'right-center': game.i18n.localize('shared-control.settings.overlayPosition.rightCenter'),
+      'right-bottom': game.i18n.localize('shared-control.settings.overlayPosition.rightBottom')
+    },
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updatePosition(value);
+      }
+    }
+  });
 }

@@ -183,4 +183,203 @@
       opacity: 0;
     }
   }
+
+  /* ========================================
+   * Overlay Controls (Zoom & Pan)
+   * ======================================== */
+
+  .shared-control-overlay {
+    --button-size: 50px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .shared-control-overlay.visible {
+    opacity: 1;
+  }
+
+  /* Combined control panel - base styles */
+  .shared-control-panel {
+    position: absolute;
+    pointer-events: auto;
+    background: rgba(20, 20, 30, 0.6);
+    border-radius: 12px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: opacity 0.3s ease;
+  }
+
+  /* Faded state when idle */
+  .shared-control-panel.faded {
+    opacity: 0.3;
+  }
+
+  .shared-control-panel.faded:hover {
+    opacity: 1;
+  }
+
+  /* Position variants - Left side */
+  .shared-control-panel.position-left-top {
+    top: 100px;
+    left: 100px;
+  }
+
+  .shared-control-panel.position-left-center {
+    top: 50%;
+    left: 100px;
+    transform: translateY(-50%);
+  }
+
+  .shared-control-panel.position-left-bottom {
+    bottom: 100px;
+    left: 100px;
+  }
+
+  /* Position variants - Right side */
+  .shared-control-panel.position-right-top {
+    top: 100px;
+    right: 100px;
+  }
+
+  .shared-control-panel.position-right-center {
+    top: 50%;
+    right: 100px;
+    transform: translateY(-50%);
+  }
+
+  .shared-control-panel.position-right-bottom {
+    bottom: 100px;
+    right: 100px;
+  }
+
+  .shared-control-panel-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .shared-control-panel-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .shared-control-spacer {
+    width: var(--button-size);
+    height: var(--button-size);
+  }
+
+  /* Base button styles */
+  .shared-control-btn {
+    width: var(--button-size);
+    height: var(--button-size);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    background: rgba(30, 30, 40, 0.85);
+    color: #ffffff;
+    font-size: calc(var(--button-size) * 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .shared-control-btn:hover {
+    background: rgba(50, 50, 65, 0.9);
+    border-color: #00cccc;
+    color: #00cccc;
+    transform: scale(1.05);
+  }
+
+  .shared-control-btn:active,
+  .shared-control-btn.active {
+    background: rgba(0, 204, 204, 0.3);
+    border-color: #00cccc;
+    color: #00cccc;
+    transform: scale(0.95);
+    box-shadow: 0 0 12px rgba(0, 204, 204, 0.5),
+                inset 0 0 8px rgba(0, 204, 204, 0.2);
+  }
+
+  /* Center button (crosshairs) special styling */
+  .shared-control-center-btn {
+    background: rgba(0, 80, 80, 0.7);
+    border-color: #00cccc;
+  }
+
+  .shared-control-center-btn:hover {
+    background: rgba(0, 120, 120, 0.8);
+  }
+
+  /* Lock button styling */
+  .shared-control-lock-btn {
+    margin-top: 8px;
+    width: 100%;
+    background: rgba(60, 60, 80, 0.7);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .shared-control-lock-btn.active {
+    background: rgba(180, 60, 60, 0.8);
+    border-color: #ff6666;
+    color: #ff6666;
+  }
+
+  .shared-control-lock-btn:hover {
+    background: rgba(80, 80, 100, 0.8);
+  }
+
+  .shared-control-lock-btn.active:hover {
+    background: rgba(200, 80, 80, 0.9);
+  }
+
+  /* Locked state - dim all buttons except lock */
+  .shared-control-panel.locked .shared-control-btn:not(.shared-control-lock-btn) {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .shared-control-panel.locked {
+    border-color: rgba(255, 100, 100, 0.5);
+  }
+
+  /* FontAwesome icon sizing */
+  .shared-control-btn i {
+    font-size: inherit;
+    line-height: 1;
+  }
+
+  /* Responsive adjustments for smaller screens */
+  @media (max-width: 768px) {
+    .shared-control-panel.position-left-top,
+    .shared-control-panel.position-left-center,
+    .shared-control-panel.position-left-bottom {
+      left: 60px;
+    }
+
+    .shared-control-panel.position-right-top,
+    .shared-control-panel.position-right-center,
+    .shared-control-panel.position-right-bottom {
+      right: 60px;
+    }
+  }
+
+  /* Reduce opacity when Foundry UI elements are open */
+  body.sheet-open .shared-control-overlay,
+  body.sidebar-collapsed .shared-control-overlay {
+    opacity: 0.5;
+  }
 }

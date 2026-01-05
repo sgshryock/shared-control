@@ -154,6 +154,10 @@ export class MovementStateMachine {
 
       // Success - return to idle
       this.reset(rulerPreview);
+
+      // Deselect all tokens after movement completes
+      canvas.tokens.releaseAll();
+
       debugLog('Movement executed successfully');
       return true;
 

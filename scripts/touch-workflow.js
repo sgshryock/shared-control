@@ -30,6 +30,12 @@ export class TouchWorkflowHandler {
     // Register hooks
     this.registerHooks();
 
+    // Setup gesture blocking if gestures are disabled
+    const gesturesEnabled = game.settings.get('shared-control', 'enableGestures');
+    if (!gesturesEnabled) {
+      this.setupGestureBlocking();
+    }
+
     // Note: Token methods are wrapped early in shared-control.js init hook
     // to ensure wrapping happens before tokens are created on canvas
 
@@ -188,6 +194,71 @@ export class TouchWorkflowHandler {
   }
 
   /**
+   * Setup gesture blocking to prevent pinch-zoom and swipe-pan
+   */
+  setupGestureBlocking() {
+    debugLog('Setting up gesture blocking');
+
+    // Store references for cleanup
+    this._gestureHandlers = {};
+
+    // Block wheel events on canvas (scroll zoom)
+    this._gestureHandlers.wheel = (e) => {
+      if (e.target.closest('#board') || e.target.closest('canvas')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    // Block touch gestures (pinch zoom, pan)
+    this._gestureHandlers.touchmove = (e) => {
+      // Block multi-touch gestures on canvas
+      if (e.touches.length > 1) {
+        if (e.target.closest('#board') || e.target.closest('canvas')) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+
+    // Block gesturestart/gesturechange (Safari)
+    this._gestureHandlers.gesturestart = (e) => {
+      if (e.target.closest('#board') || e.target.closest('canvas')) {
+        e.preventDefault();
+      }
+    };
+
+    this._gestureHandlers.gesturechange = (e) => {
+      if (e.target.closest('#board') || e.target.closest('canvas')) {
+        e.preventDefault();
+      }
+    };
+
+    // Attach handlers
+    document.addEventListener('wheel', this._gestureHandlers.wheel, { passive: false, capture: true });
+    document.addEventListener('touchmove', this._gestureHandlers.touchmove, { passive: false, capture: true });
+    document.addEventListener('gesturestart', this._gestureHandlers.gesturestart, { passive: false });
+    document.addEventListener('gesturechange', this._gestureHandlers.gesturechange, { passive: false });
+
+    debugLog('Gesture blocking enabled');
+  }
+
+  /**
+   * Remove gesture blocking handlers
+   */
+  removeGestureBlocking() {
+    if (!this._gestureHandlers) return;
+
+    document.removeEventListener('wheel', this._gestureHandlers.wheel, { capture: true });
+    document.removeEventListener('touchmove', this._gestureHandlers.touchmove, { capture: true });
+    document.removeEventListener('gesturestart', this._gestureHandlers.gesturestart);
+    document.removeEventListener('gesturechange', this._gestureHandlers.gesturechange);
+
+    this._gestureHandlers = null;
+    debugLog('Gesture blocking disabled');
+  }
+
+  /**
    * Check if module is enabled
    */
   isEnabled() {
@@ -208,6 +279,9 @@ export class TouchWorkflowHandler {
     if (this.libWrapper) {
       this.libWrapper.unregisterAll?.('shared-control');
     }
+
+    // Remove gesture blocking
+    this.removeGestureBlocking();
 
     // Restore cursor
     document.body.style.cursor = 'default';

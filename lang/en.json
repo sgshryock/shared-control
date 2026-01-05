@@ -24,6 +24,36 @@
       "debugMode": {
         "name": "Debug Mode",
         "hint": "Enable verbose console logging for troubleshooting. Disable for normal use."
+      },
+      "enableGestures": {
+        "name": "Enable Touch Gestures",
+        "hint": "Allow pinch-to-zoom and swipe-to-pan gestures on the canvas. Disabled by default to prevent accidental movements."
+      },
+      "lockButtonRoles": {
+        "name": "Lock Button Visibility",
+        "hint": "Minimum user role required to see and use the lock button. When locked, all zoom/pan controls are disabled for everyone.",
+        "player": "Player and above",
+        "trusted": "Trusted Player and above",
+        "assistant": "Assistant GM and above",
+        "gm": "Game Master only"
+      },
+      "showOverlayControls": {
+        "name": "Show Overlay Controls",
+        "hint": "Display on-screen buttons for zooming and panning the map. Useful for touch screens."
+      },
+      "overlayButtonSize": {
+        "name": "Overlay Button Size",
+        "hint": "Size of the overlay control buttons in pixels (default: 50px)."
+      },
+      "overlayPosition": {
+        "name": "Overlay Position",
+        "hint": "Where to display the zoom/pan control panel on the screen.",
+        "leftTop": "Left - Top",
+        "leftCenter": "Left - Center",
+        "leftBottom": "Left - Bottom",
+        "rightTop": "Right - Top",
+        "rightCenter": "Right - Center",
+        "rightBottom": "Right - Bottom"
       }
     },
     "notifications": {

@@ -1007,6 +1007,14 @@ export class RulerPreview {
     );
 
     try {
+      // Clear path highlighting before movement starts
+      if (this.graphics) {
+        this.graphics.clear();
+      }
+      if (this.distanceText) {
+        this.distanceText.visible = false;
+      }
+
       // Animate token through each waypoint in the path
       if (this.currentPath && this.currentPath.length > 0) {
         debugLog('Animating through path with', this.currentPath.length, 'waypoints');
