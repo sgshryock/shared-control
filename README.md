@@ -217,7 +217,7 @@ Contributions are welcome! Please:
 
 - **Issues**: [GitHub Issues](https://github.com/sgshryock/shared-control/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/sgshryock/shared-control/discussions)
-- **Discord**: Join the Foundry VTT Discord and tag @gordonshryock
+- **Discord**: To Come Later...
 
 ## License
 
@@ -226,7 +226,6 @@ This module is licensed under the MIT License. See LICENSE file for details.
 ## Credits
 
 - **Author**: Gordon Shryock
-- **Inspired By**: Drag Ruler module by Stäbchenfisch
 - **Built For**: Foundry VTT v13
 - **Special Thanks**: The Foundry VTT community for testing and feedback
 
