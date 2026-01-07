@@ -75,13 +75,28 @@ export class TouchWorkflowHandler {
     });
     this.hooks.push({ name: 'preUpdateToken', id: preUpdateHook });
 
-    // Track movement completion
+    // Track movement completion and lock changes
     const updateHook = Hooks.on('updateToken', (tokenDoc, changes, options, userId) => {
       if (!this.isEnabled()) return;
 
       if (changes.x !== undefined || changes.y !== undefined) {
         // Movement completed - unlock token
         this.stateMachine.unlockToken(tokenDoc.id);
+      }
+
+      // Check if lock flag changed on our selected token
+      if (changes.flags?.['shared-control']?.lockedBy !== undefined) {
+        const selectedToken = this.stateMachine.selectedToken;
+        if (selectedToken && selectedToken.document.id === tokenDoc.id) {
+          const newLockData = changes.flags['shared-control'].lockedBy;
+          // If someone else now has the lock, cancel our movement
+          if (newLockData && newLockData.userId !== game.user.id) {
+            debugLog('Lock overridden by another user, canceling movement');
+            const lockingUser = game.users.get(newLockData.userId);
+            ui.notifications.warn(`${lockingUser?.name ?? 'GM'} took control of ${selectedToken.name}`);
+            this.stateMachine.cancelMovement(this.rulerPreview);
+          }
+        }
       }
     });
     this.hooks.push({ name: 'updateToken', id: updateHook });
@@ -159,7 +174,9 @@ export class TouchWorkflowHandler {
     }
 
     // Handle multi-touch (cancel on multi-touch)
-    if (event.touches && event.touches.length > 1) {
+    // Check the native DOM event for touch information since PIXI events don't have .touches
+    const nativeEvent = event.nativeEvent || event.data?.originalEvent;
+    if (nativeEvent?.touches && nativeEvent.touches.length > 1) {
       debugLog('Multi-touch detected, canceling');
       this.stateMachine.cancelMovement(this.rulerPreview);
       return;

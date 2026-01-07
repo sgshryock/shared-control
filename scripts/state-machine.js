@@ -22,7 +22,7 @@ export class MovementStateMachine {
     this.lastTapPosition = null;
     this.lastTapTime = 0;
     this.errorTimeout = null;
-    this.lockedTokens = new Set(); // Track tokens being moved by other users
+    this.lockedTokens = new Map(); // Track tokens being moved by other users (tokenId -> userId)
   }
 
   /**
@@ -45,25 +45,46 @@ export class MovementStateMachine {
    * @param {RulerPreview} rulerPreview - The ruler preview handler for visual feedback
    * @returns {Boolean} - True if selection successful
    */
-  selectToken(token, rulerPreview) {
+  async selectToken(token, rulerPreview) {
     // Validate permissions
     if (!utils.canMoveToken(token)) {
       ui.notifications.warn(game.i18n.localize('shared-control.notifications.noPermission'));
       return false;
     }
 
-    // Check if token is locked by another user
-    if (this.lockedTokens.has(token.id)) {
-      const lockingUser = game.users.find(u => u.id === this.lockedTokens.get(token.id));
-      const userName = lockingUser?.name ?? 'another user';
-      ui.notifications.info(
-        game.i18n.format('shared-control.notifications.tokenLocked', { user: userName })
-      );
-      return false;
+    // Check if token is locked by another user (using token flag for sync)
+    const lockData = token.document.getFlag('shared-control', 'lockedBy');
+    if (lockData && lockData.userId !== game.user.id) {
+      // GM can always override locks
+      if (game.user.isGM) {
+        console.log('SharedControl: GM overriding lock');
+        ui.notifications.info('Overriding lock as GM');
+      } else {
+        // Check if lock is stale (older than 5 minutes)
+        const lockAge = Date.now() - (lockData.timestamp || 0);
+        if (lockAge < 300000) { // 5 minutes
+          const lockingUser = game.users.get(lockData.userId);
+          const userName = lockingUser?.name ?? 'another user';
+          console.log('SharedControl: Token locked by', userName);
+          ui.notifications.info(
+            game.i18n.format('shared-control.notifications.tokenLocked', { user: userName })
+          );
+          return false;
+        }
+        // Lock is stale, allow override
+        console.log('SharedControl: Stale lock detected, overriding');
+      }
     }
 
     // Control the token
     token.control({ releaseOthers: true });
+
+    // Lock the token using document flag (syncs automatically to all clients)
+    await token.document.setFlag('shared-control', 'lockedBy', {
+      userId: game.user.id,
+      timestamp: Date.now()
+    });
+    console.log('SharedControl: Token locked via flag');
 
     // Show visual highlight
     if (rulerPreview) {
@@ -251,10 +272,26 @@ export class MovementStateMachine {
    * Reset the state machine to IDLE
    * @param {RulerPreview} rulerPreview - The ruler preview handler for clearing visual feedback
    */
-  reset(rulerPreview) {
+  async reset(rulerPreview) {
     // Clear visual highlight
     if (rulerPreview) {
       rulerPreview.clearSelectionHighlight();
+    }
+
+    // Unlock the token by clearing the flag (only if we still own the lock)
+    if (this.selectedToken) {
+      try {
+        const lockData = this.selectedToken.document.getFlag('shared-control', 'lockedBy');
+        // Only clear if we own the lock (don't clear someone else's lock)
+        if (lockData?.userId === game.user.id) {
+          await this.selectedToken.document.unsetFlag('shared-control', 'lockedBy');
+          console.log('SharedControl: Token unlocked via flag');
+        } else {
+          console.log('SharedControl: Lock owned by another user, not clearing');
+        }
+      } catch (e) {
+        console.warn('SharedControl: Could not clear lock flag', e);
+      }
     }
 
     this.currentState = States.IDLE;
