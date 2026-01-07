@@ -2,7 +2,7 @@
   "id": "shared-control",
   "title": "SharedControl - Touch Screen Token Movement",
   "description": "Enables touch screen interaction for token movement with physical miniatures. Features a tap-based workflow with movement preview and confirmation, perfect for tabletop gaming with touch screens.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "compatibility": {
     "minimum": "13",
     "verified": "13"

@@ -75,14 +75,9 @@ export class TouchWorkflowHandler {
     });
     this.hooks.push({ name: 'preUpdateToken', id: preUpdateHook });
 
-    // Track movement completion and lock changes
+    // Track lock flag changes
     const updateHook = Hooks.on('updateToken', (tokenDoc, changes, options, userId) => {
       if (!this.isEnabled()) return;
-
-      if (changes.x !== undefined || changes.y !== undefined) {
-        // Movement completed - unlock token
-        this.stateMachine.unlockToken(tokenDoc.id);
-      }
 
       // Check if lock flag changed on our selected token
       if (changes.flags?.['shared-control']?.lockedBy !== undefined) {

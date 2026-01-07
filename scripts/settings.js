@@ -107,6 +107,21 @@ export function registerSettings() {
     }
   });
 
+  // World setting: Broadcast mode active (syncs broadcast state to all clients)
+  game.settings.register('shared-control', 'broadcastMode', {
+    name: 'Broadcast Mode',
+    hint: 'Internal setting to track if GM is broadcasting',
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateBroadcastState(value);
+      }
+    }
+  });
+
   // World setting: GM broadcast pan data (syncs view to all players)
   game.settings.register('shared-control', 'broadcastPanData', {
     name: 'Broadcast Pan Data',
@@ -117,7 +132,7 @@ export function registerSettings() {
     default: null,
     onChange: value => {
       // Only non-GM clients should respond to broadcast
-      if (game.user.isGM || !value) return;
+      if (game.user.isGM || !value || !canvas?.stage) return;
 
       // Animate pan to the broadcast position
       canvas.animatePan({
@@ -126,6 +141,36 @@ export function registerSettings() {
         scale: value.scale,
         duration: value.duration || 250
       });
+    }
+  });
+
+  // World setting: Blackout mode (hides screen from players)
+  game.settings.register('shared-control', 'blackoutMode', {
+    name: 'Blackout Mode',
+    hint: 'When enabled, players see a black screen and cannot see or interact with anything',
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateBlackoutState(value);
+      }
+    }
+  });
+
+  // Client setting: GM uses normal Foundry controls (bypasses tap workflow)
+  game.settings.register('shared-control', 'gmNormalMode', {
+    name: 'GM Normal Mode',
+    hint: 'When enabled, GM uses normal Foundry drag-and-drop instead of tap workflow',
+    scope: 'client',
+    config: false,
+    type: Boolean,
+    default: true,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateGmModeState(value);
+      }
     }
   });
 

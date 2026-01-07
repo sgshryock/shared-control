@@ -23,8 +23,6 @@ class SharedControl {
     this.rulerPreview = null;
     this.touchWorkflow = null;
     this.overlayControls = null;
-    this.compatibility = null;
-    this.socket = null;
   }
 
   /**
@@ -58,9 +56,6 @@ class SharedControl {
       this.overlayControls = new OverlayControls();
       this.overlayControls.initialize();
 
-      // Setup socket for broadcast functionality
-      this.setupSocket();
-
       // Attach canvas listener if canvas is already ready
       if (canvas?.stage) {
         debugLog('Canvas already ready, attaching listener now');
@@ -73,48 +68,6 @@ class SharedControl {
       // Clean up on error
       this.destroy();
     }
-  }
-
-  /**
-   * Setup socket for GM broadcast and token locking functionality
-   */
-  setupSocket() {
-    this.socket = game.socket;
-    console.log('SharedControl: Setting up socket listener');
-
-    // Listen for socket messages (kept for potential future use, but main features use settings/flags)
-    this.socket.on('module.shared-control', (data) => {
-      debugLog('Socket message received:', data);
-    });
-
-    debugLog('Socket listener registered');
-  }
-
-  /**
-   * Broadcast token lock to all clients
-   * @param {String} tokenId - Token ID to lock
-   */
-  broadcastLock(tokenId) {
-    const message = {
-      action: 'lockToken',
-      tokenId: tokenId,
-      userId: game.user.id
-    };
-    console.log('SharedControl: Broadcasting lock message:', message);
-    game.socket.emit('module.shared-control', message);
-  }
-
-  /**
-   * Broadcast token unlock to all clients
-   * @param {String} tokenId - Token ID to unlock
-   */
-  broadcastUnlock(tokenId) {
-    console.log('SharedControl: Broadcasting unlock for token:', tokenId);
-    game.socket.emit('module.shared-control', {
-      action: 'unlockToken',
-      tokenId: tokenId,
-      userId: game.user.id
-    });
   }
 
   /**
@@ -256,6 +209,12 @@ function wrapTokenMethodsEarly() {
       return originalClickLeft.call(this, event);
     }
 
+    // GM in normal mode uses standard Foundry behavior
+    if (game.user.isGM && game.settings.get('shared-control', 'gmNormalMode')) {
+      debugLog('GM normal mode, using original behavior');
+      return originalClickLeft.call(this, event);
+    }
+
     // Block all token interactions for non-GM when controls are locked (GM broadcast mode)
     if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
       debugLog('Controls locked, blocking token interaction');
@@ -271,15 +230,21 @@ function wrapTokenMethodsEarly() {
   TokenClass.prototype._onDragLeftStart = function(event) {
     debugLog('Drag start intercepted');
 
-    if (game.settings.get('shared-control', 'enabled')) {
-      debugLog('Preventing drag (using tap workflow)');
-      event.stopPropagation();
-      event.preventDefault();
-      return false;
+    if (!game.settings.get('shared-control', 'enabled')) {
+      debugLog('Module disabled, allowing drag');
+      return originalDragLeftStart.call(this, event);
     }
 
-    debugLog('Module disabled, allowing drag');
-    return originalDragLeftStart.call(this, event);
+    // GM in normal mode can always drag
+    if (game.user.isGM && game.settings.get('shared-control', 'gmNormalMode')) {
+      debugLog('GM normal mode, allowing drag');
+      return originalDragLeftStart.call(this, event);
+    }
+
+    debugLog('Preventing drag (using tap workflow)');
+    event.stopPropagation();
+    event.preventDefault();
+    return false;
   };
 
   debugLog('Token methods wrapped early (before canvas creation)');
@@ -288,7 +253,7 @@ function wrapTokenMethodsEarly() {
 // Setup on Foundry ready
 Hooks.once('ready', async () => {
   // Check compatibility with other modules
-  game.sharedControl.compatibility = checkCompatibility();
+  checkCompatibility();
 
   // Initialize the module
   await game.sharedControl.initialize();

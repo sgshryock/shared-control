@@ -22,7 +22,6 @@ export class MovementStateMachine {
     this.lastTapPosition = null;
     this.lastTapTime = 0;
     this.errorTimeout = null;
-    this.lockedTokens = new Map(); // Track tokens being moved by other users (tokenId -> userId)
   }
 
   /**
@@ -57,7 +56,7 @@ export class MovementStateMachine {
     if (lockData && lockData.userId !== game.user.id) {
       // GM can always override locks
       if (game.user.isGM) {
-        console.log('SharedControl: GM overriding lock');
+        debugLog('GM overriding lock');
         ui.notifications.info('Overriding lock as GM');
       } else {
         // Check if lock is stale (older than 5 minutes)
@@ -65,14 +64,14 @@ export class MovementStateMachine {
         if (lockAge < 300000) { // 5 minutes
           const lockingUser = game.users.get(lockData.userId);
           const userName = lockingUser?.name ?? 'another user';
-          console.log('SharedControl: Token locked by', userName);
+          debugLog('Token locked by', userName);
           ui.notifications.info(
             game.i18n.format('shared-control.notifications.tokenLocked', { user: userName })
           );
           return false;
         }
         // Lock is stale, allow override
-        console.log('SharedControl: Stale lock detected, overriding');
+        debugLog('Stale lock detected, overriding');
       }
     }
 
@@ -84,7 +83,7 @@ export class MovementStateMachine {
       userId: game.user.id,
       timestamp: Date.now()
     });
-    console.log('SharedControl: Token locked via flag');
+    debugLog('Token locked via flag');
 
     // Show visual highlight
     if (rulerPreview) {
@@ -238,23 +237,6 @@ export class MovementStateMachine {
   }
 
   /**
-   * Lock a token to prevent race conditions
-   * @param {String} tokenId - Token ID
-   * @param {String} userId - User ID
-   */
-  lockToken(tokenId, userId) {
-    this.lockedTokens.set(tokenId, userId);
-  }
-
-  /**
-   * Unlock a token
-   * @param {String} tokenId - Token ID
-   */
-  unlockToken(tokenId) {
-    this.lockedTokens.delete(tokenId);
-  }
-
-  /**
    * Check if a tap is at the same location as the last tap
    * No timeout - user can cancel by tapping the token instead
    * @param {Object} position - Position to check {x, y}
@@ -285,9 +267,9 @@ export class MovementStateMachine {
         // Only clear if we own the lock (don't clear someone else's lock)
         if (lockData?.userId === game.user.id) {
           await this.selectedToken.document.unsetFlag('shared-control', 'lockedBy');
-          console.log('SharedControl: Token unlocked via flag');
+          debugLog('Token unlocked via flag');
         } else {
-          console.log('SharedControl: Lock owned by another user, not clearing');
+          debugLog('Lock owned by another user, not clearing');
         }
       } catch (e) {
         console.warn('SharedControl: Could not clear lock flag', e);
@@ -314,6 +296,5 @@ export class MovementStateMachine {
    */
   destroy(rulerPreview) {
     this.reset(rulerPreview);
-    this.lockedTokens.clear();
   }
 }

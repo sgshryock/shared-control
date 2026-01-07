@@ -27,15 +27,35 @@ A Foundry VTT v13 module that enables intuitive touch screen interaction for tok
 - **Customizable Position**: Place controls on left or right side at top, center, or bottom
 - **Adjustable Button Size**: Configure button size for different screen sizes
 - **Auto-Fade**: Controls fade when idle and reappear on interaction
-- **GM Broadcast Mode**: GM can sync their view to all players while locking all player interactions
-- **Lock Controls**: Prevent players from panning/zooming (GM always exempt)
+- **Lock Controls**: Prevent players from moving tokens or interacting with canvas
+- **Visual Button States**: Active buttons glow with pulsing animations (red for lock, green for broadcast, gray for blackout)
+
+### GM Controls
+- **Broadcast Mode**: Sync GM's view to all players with full interaction lock
+- **Blackout Mode**: Hide the entire screen from players (shows black overlay)
+- **GM Normal Mode**: Toggle between tap workflow and standard Foundry drag-and-drop
+- **GM Exemption**: GM is always exempt from all locks and restrictions
 
 ### GM Broadcast Mode
 - **View Synchronization**: GM's pan/zoom is automatically pushed to all players
 - **Full Interaction Lock**: Players cannot interact with tokens, canvas, or hotbar during broadcast
-- **Visual Indicator**: Players see a "GM is controlling the view" message
+- **Visual Indicator**: Players see "GM is controlling the view" message
 - **GM Exemption**: GM retains full control while players are locked
 - **Toggle On/Off**: Click the broadcast tower icon to enable/disable
+- **Lock Persistence**: Disabling broadcast keeps players locked (must manually unlock)
+
+### GM Blackout Mode
+- **Screen Hiding**: Players see a completely black screen
+- **Full Interaction Lock**: Automatically locks all player interactions
+- **Visual Indicator**: Players see "Please wait..." message on black background
+- **Smart Lock Behavior**: If lock was already on, disabling blackout keeps lock on; if lock was off, disabling blackout also unlocks
+- **Toggle On/Off**: Click the eye-slash icon to enable/disable
+
+### GM Normal Mode
+- **Standard Foundry Controls**: When enabled, GM uses normal drag-and-drop instead of tap workflow
+- **Per-Client Setting**: Only affects the GM's own interaction style
+- **Default On**: GM Normal Mode is enabled by default for familiar Foundry experience
+- **Toggle On/Off**: Click the mouse pointer icon to switch modes
 
 ### Touch Experience
 - **Touch-Only Mode**: Per-user setting to hide cursor for dedicated touch screen setups
@@ -259,6 +279,16 @@ This module is licensed under the MIT License. See LICENSE file for details.
 - **Special Thanks**: The Foundry VTT community for testing and feedback
 
 ## Changelog
+
+### Version 1.5.0 (2025-01-06)
+
+- **GM Normal Mode**: New toggle button for GM to switch between tap workflow and standard Foundry drag-and-drop
+- **Blackout Mode**: New button to hide screen from players with black overlay and "Please wait..." message
+- **Smart Lock Behavior**: Blackout and broadcast buttons intelligently manage lock state
+- **Visual Button States**: All toggle buttons (lock, broadcast, blackout) now have pulsing glow animations when active
+- **Context-Aware Messages**: Players see "GM is controlling the view" during broadcast, "GM has locked the screen" when just locked
+- **Code Cleanup**: Removed dead socket code, unused methods, and improved logging consistency
+- **Safety Improvements**: Added canvas existence checks to prevent errors during initialization
 
 ### Version 1.4.0 (2025-01-06)
 

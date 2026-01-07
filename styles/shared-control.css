@@ -375,6 +375,7 @@
     background: rgba(180, 60, 60, 0.8);
     border-color: #ff6666;
     color: #ff6666;
+    animation: shared-control-lock-pulse 1.5s ease-in-out infinite;
   }
 
   .shared-control-lock-btn:hover {
@@ -383,6 +384,89 @@
 
   .shared-control-lock-btn.active:hover {
     background: rgba(200, 80, 80, 0.9);
+  }
+
+  @keyframes shared-control-lock-pulse {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(255, 102, 102, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(255, 102, 102, 0.8);
+    }
+  }
+
+  /* GM mode button */
+  .shared-control-gm-mode-btn.active {
+    background: rgba(100, 200, 100, 0.7);
+    border-color: rgba(100, 200, 100, 0.8);
+  }
+
+  .shared-control-gm-mode-btn:hover {
+    background: rgba(80, 80, 100, 0.8);
+  }
+
+  .shared-control-gm-mode-btn.active:hover {
+    background: rgba(100, 200, 100, 0.9);
+  }
+
+  /* Blackout button */
+  .shared-control-blackout-btn.active {
+    background: rgba(30, 30, 30, 0.9);
+    border-color: #888888;
+    color: #cccccc;
+    animation: shared-control-blackout-pulse 1.5s ease-in-out infinite;
+  }
+
+  .shared-control-blackout-btn:hover {
+    background: rgba(80, 80, 100, 0.8);
+  }
+
+  .shared-control-blackout-btn.active:hover {
+    background: rgba(50, 50, 50, 0.9);
+  }
+
+  @keyframes shared-control-blackout-pulse {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(136, 136, 136, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(136, 136, 136, 0.8);
+    }
+  }
+
+  /* Blackout overlay - covers entire screen with black */
+  .shared-control-blackout-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    background: #000;
+    transition: opacity 0.5s ease;
+  }
+
+  .shared-control-blackout-overlay.active {
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  .shared-control-blackout-overlay .blackout-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 24px;
+    text-align: center;
+  }
+
+  .shared-control-blackout-overlay .blackout-message i {
+    display: block;
+    font-size: 48px;
+    margin-bottom: 16px;
   }
 
   /* Locked state - dim all buttons except lock */
