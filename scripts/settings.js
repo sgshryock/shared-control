@@ -48,8 +48,8 @@ export function registerSettings() {
 
   // World setting: Track movement distance
   game.settings.register('shared-control', 'trackMovement', {
-    name: 'Track Movement Distance',
-    hint: 'Color-code movement paths based on character speed (green = allowed, yellow = slightly over, red = too far). Reads movement speed from character sheet.',
+    name: game.i18n.localize('shared-control.settings.trackMovement.name'),
+    hint: game.i18n.localize('shared-control.settings.trackMovement.hint'),
     scope: 'world',
     config: true,
     type: Boolean,

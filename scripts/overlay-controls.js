@@ -5,6 +5,12 @@
 
 import { debugLog } from './utils.js';
 
+// Constants
+const ZOOM_FACTOR = 1.25;
+const PAN_AMOUNT = 100; // Pixels to pan per tick
+const PAN_INTERVAL = 50; // Milliseconds between pans
+const FADE_DELAY = 5000; // Milliseconds before controls fade
+
 export class OverlayControls {
   constructor() {
     this.container = null;
@@ -16,7 +22,7 @@ export class OverlayControls {
     this.isLocked = false;
     this.isBroadcasting = false;
     this.fadeTimeout = null;
-    this.fadeDelay = 5000; // 5 seconds
+    this.fadeDelay = FADE_DELAY;
   }
 
   /**
@@ -315,7 +321,7 @@ export class OverlayControls {
     if (!canvas?.stage) return;
 
     const currentScale = canvas.stage.scale.x;
-    const zoomFactor = 1.25;
+    const zoomFactor = ZOOM_FACTOR;
 
     let newScale;
     if (direction > 0) {
@@ -368,8 +374,8 @@ export class OverlayControls {
   startPanning(direction) {
     this.stopPanning(); // Clear any existing interval
 
-    const panAmount = 100; // Pixels to pan per tick
-    const panInterval = 50; // Milliseconds between pans
+    const panAmount = PAN_AMOUNT;
+    const panInterval = PAN_INTERVAL;
 
     // Perform initial pan immediately
     this.performPan(direction, panAmount);

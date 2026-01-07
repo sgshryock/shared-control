@@ -13,6 +13,10 @@
         "name": "Tap Tolerance",
         "hint": "Distance in pixels for determining if two taps are in the same location (default: 25px)."
       },
+      "trackMovement": {
+        "name": "Track Movement Distance",
+        "hint": "Color-code movement paths based on character speed (green = allowed, yellow = slightly over, red = too far). Reads movement speed from character sheet."
+      },
       "animationSpeed": {
         "name": "Animation Speed",
         "hint": "Duration in milliseconds for each grid square during token movement animation (default: 200ms). Lower = faster."
