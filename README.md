@@ -4,6 +4,7 @@ A Foundry VTT v13 module that enables intuitive touch screen interaction for tok
 
 ## Features
 
+### Movement
 - **Tap-Based Workflow**: Simple tap interaction for token selection, movement preview, and confirmation
 - **A* Pathfinding**: Intelligent pathfinding that automatically routes around walls and obstacles
 - **Movement Preview**: Visual path overlay showing the route with distance measurement
@@ -12,11 +13,28 @@ A Foundry VTT v13 module that enables intuitive touch screen interaction for tok
   - Yellow: Within double movement (dash)
   - Red: Exceeds double movement
   - Cyan: No movement tracking enabled
-- **Touch-Only Mode**: Per-user setting to hide cursor for dedicated touch screen setups
-- **Multi-System Support**: Works with D&D 5e, Pathfinder 2e, SWADE, Cosmere RPG, and others
 - **Wall Detection**: Respects walls and movement-blocking terrain
-- **Debug Visualization**: Built-in debug view to troubleshoot pathfinding issues
+- **Multi-System Support**: Works with D&D 5e, Pathfinder 2e, SWADE, Cosmere RPG, and others
+
+### Token Locking
+- **Concurrent Use Protection**: Prevents multiple users from moving the same token simultaneously
+- **Automatic Lock Release**: Locks are released when movement completes or is cancelled
+- **Stale Lock Timeout**: Locks automatically expire after 5 minutes if not released
+- **GM Override**: GMs can always take control of any token, automatically cancelling the other user's action
+
+### Overlay Controls
+- **On-Screen Buttons**: Zoom in/out, pan in all directions, and center on token
+- **Customizable Position**: Place controls on left or right side at top, center, or bottom
+- **Adjustable Button Size**: Configure button size for different screen sizes
+- **Auto-Fade**: Controls fade when idle and reappear on interaction
+- **GM Broadcast Mode**: GM can sync their view to all players
+- **Lock Controls**: Prevent all users from panning/zooming (GM configurable)
+
+### Touch Experience
+- **Touch-Only Mode**: Per-user setting to hide cursor for dedicated touch screen setups
+- **Gesture Blocking**: Optionally disable pinch-zoom and swipe-pan to prevent accidental movements
 - **Permission Aware**: Only allows movement of tokens the user owns or controls
+- **Debug Visualization**: Built-in debug view to troubleshoot pathfinding issues
 
 ## How It Works
 
@@ -66,15 +84,19 @@ Access settings via **Configure Settings** → **Module Settings** → **SharedC
 #### World Settings (GM Only)
 
 - **Enable SharedControl**: Master toggle to enable/disable the module
-- **Tap Timeout**: Time window for detecting confirmation taps (default: 500ms)
 - **Tap Tolerance**: Distance in pixels for "same location" detection (default: 25px)
+- **Track Movement Distance**: Color-code paths based on character speed (default: enabled)
+- **Animation Speed**: Token movement animation speed in ms per grid square (default: 200ms)
+- **Enable Touch Gestures**: Allow pinch-zoom and swipe-pan on canvas (default: disabled)
+- **Lock Button Visibility**: Minimum role required to see/use the lock button (default: GM only)
+- **Debug Mode**: Enable verbose console logging for troubleshooting
 
 #### User Settings
 
-- **Touch-Only Mode**: Disables traditional mouse controls for token movement
-  - Recommended for dedicated touch screen setups
-  - Each player can configure independently
-  - GM can enable for specific users
+- **Touch-Only Mode**: Hides mouse cursor for dedicated touch screen setups
+- **Show Overlay Controls**: Display on-screen zoom/pan buttons (default: enabled)
+- **Overlay Button Size**: Size of overlay control buttons (default: 50px)
+- **Overlay Position**: Where to display the control panel (left/right, top/center/bottom)
 
 ## Recommended Modules
 
@@ -98,6 +120,7 @@ SharedControl is designed to work with all game systems:
 - ✅ **D&D 5e**: Full support with movement validation
 - ✅ **Pathfinder 2e**: Full support with action economy
 - ✅ **SWADE**: Full support with running rules
+- ✅ **Cosmere RPG**: Full support with movement tracking
 - ✅ **Generic Systems**: Basic movement without system-specific rules
 
 ## Requirements
@@ -230,6 +253,32 @@ This module is licensed under the MIT License. See LICENSE file for details.
 - **Special Thanks**: The Foundry VTT community for testing and feedback
 
 ## Changelog
+
+### Version 1.3.0 (2025-01-06)
+
+- Added token locking to prevent concurrent movement by multiple users
+- Added GM override capability for locked tokens
+- Automatic cancellation of player's action when GM takes control
+- Stale lock timeout (5 minutes) for abandoned locks
+- Fixed Foundry v13 deprecation warnings (BaseRuler#clear, CHAT_MESSAGE_TYPES)
+- Removed unused tap timeout setting
+- Fixed multi-touch detection for PIXI events
+- Improved code organization and error handling
+
+### Version 1.2.0 (2025-01-04)
+
+- Added GM broadcast mode to sync view with all players
+- Added overlay controls for zoom and pan
+- Added lock feature to prevent pan/zoom
+- Added gesture blocking option
+- Customizable overlay position and button size
+
+### Version 1.1.0 (2025-01-04)
+
+- Added overlay controls (zoom/pan buttons)
+- Added gesture blocking option
+- Added lock feature for controls
+- Cyan glow selection highlight for tokens
 
 ### Version 1.0.0 (2025-01-04)
 
