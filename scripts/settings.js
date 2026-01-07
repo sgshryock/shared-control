@@ -31,21 +31,6 @@ export function registerSettings() {
     }
   });
 
-  // World setting: Tap timeout (how long the path preview stays active)
-  game.settings.register('shared-control', 'tapTimeout', {
-    name: game.i18n.localize('shared-control.settings.tapTimeout.name'),
-    hint: game.i18n.localize('shared-control.settings.tapTimeout.hint'),
-    scope: 'world',
-    config: true,
-    type: Number,
-    default: 300000,  // 5 minutes
-    range: {
-      min: 10000,     // 10 seconds minimum
-      max: 600000,    // 10 minutes maximum
-      step: 10000     // 10 second increments
-    }
-  });
-
   // World setting: Tap tolerance
   game.settings.register('shared-control', 'tapTolerance', {
     name: game.i18n.localize('shared-control.settings.tapTolerance.name'),

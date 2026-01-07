@@ -1082,7 +1082,7 @@ export class RulerPreview {
       ChatMessage.create({
         content: chatMessage,
         speaker: ChatMessage.getSpeaker({ token: token.document }),
-        type: CONST.CHAT_MESSAGE_TYPES.EMOTE
+        style: CONST.CHAT_MESSAGE_STYLES.EMOTE
       });
 
       debugLog('Movement confirmed and executed');
@@ -1103,10 +1103,10 @@ export class RulerPreview {
   clearPreview() {
     debugLog('Clearing preview');
 
-    // Clear the native ruler
+    // Clear the native ruler (use reset() instead of deprecated clear())
     try {
       if (canvas.controls?.ruler) {
-        canvas.controls.ruler.clear();
+        canvas.controls.ruler.reset();
       }
     } catch (error) {
       console.warn('SharedControl: Error clearing ruler', error);
