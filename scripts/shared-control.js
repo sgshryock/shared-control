@@ -3,7 +3,7 @@
  * Main module entry point
  *
  * @author Gordon Shryock
- * @version 1.3.0
+ * @version 1.4.0
  */
 
 import { registerSettings } from './settings.js';
@@ -82,47 +82,9 @@ class SharedControl {
     this.socket = game.socket;
     console.log('SharedControl: Setting up socket listener');
 
-    // Listen for socket messages
+    // Listen for socket messages (kept for potential future use, but main features use settings/flags)
     this.socket.on('module.shared-control', (data) => {
-      console.log('SharedControl: Socket message received:', data);
-
-      // Handle token lock/unlock from any user
-      if (data.action === 'lockToken') {
-        // Don't process our own lock messages
-        if (data.userId === game.user.id) {
-          console.log('SharedControl: Ignoring our own lock message');
-          return;
-        }
-
-        console.log('SharedControl: Processing remote lock for token:', data.tokenId, 'by user:', data.userId);
-        this.stateMachine?.lockToken(data.tokenId, data.userId);
-        console.log('SharedControl: Lock applied, current locks:', Array.from(this.stateMachine?.lockedTokens?.entries() || []));
-        return;
-      }
-
-      if (data.action === 'unlockToken') {
-        // Don't process our own unlock messages
-        if (data.userId === game.user.id) {
-          console.log('SharedControl: Ignoring our own unlock message');
-          return;
-        }
-
-        console.log('SharedControl: Processing remote unlock for token:', data.tokenId);
-        this.stateMachine?.unlockToken(data.tokenId);
-        return;
-      }
-
-      // Pan broadcasts are GM-only
-      if (game.user.isGM) return;
-
-      if (data.action === 'pan') {
-        canvas.animatePan({
-          x: data.x,
-          y: data.y,
-          scale: data.scale,
-          duration: data.duration || 250
-        });
-      }
+      debugLog('Socket message received:', data);
     });
 
     debugLog('Socket listener registered');
@@ -157,17 +119,20 @@ class SharedControl {
 
   /**
    * Broadcast pan/zoom to all players (GM only)
+   * Uses world setting for reliable cross-client sync
    * @param {Object} panData - Pan data {x, y, scale, duration}
    */
   broadcastPan(panData) {
     if (!game.user.isGM) return;
 
-    game.socket.emit('module.shared-control', {
-      action: 'pan',
+    // Use world setting for broadcast - this syncs automatically to all clients
+    // Include timestamp to ensure even identical positions trigger onChange
+    game.settings.set('shared-control', 'broadcastPanData', {
       x: panData.x,
       y: panData.y,
       scale: panData.scale,
-      duration: panData.duration || 250
+      duration: panData.duration || 250,
+      timestamp: Date.now()
     });
 
     debugLog('Broadcast pan:', panData);
@@ -237,83 +202,6 @@ Hooks.once('init', async () => {
   wrapTokenMethodsEarly();
 });
 
-// Debug: Check socket availability at different hooks
-Hooks.once('setup', () => {
-  console.log('SharedControl [setup]: game.socket exists?', !!game.socket);
-});
-
-Hooks.once('ready', () => {
-  console.log('SharedControl [ready]: game.socket exists?', !!game.socket);
-  console.log('SharedControl [ready]: game.socket.connected?', game.socket?.connected);
-
-  if (!game.socket) {
-    console.error('SharedControl: game.socket is not available!');
-    return;
-  }
-
-  console.log('SharedControl: Registering socket listener in ready hook');
-
-  game.socket.on('module.shared-control', (data) => {
-    console.log('SharedControl: Socket message received from user', data.userId, ':', data);
-
-    // Handle test ping
-    if (data.action === 'test') {
-      console.log('SharedControl: TEST PING received from', data.userName, '- Socket is working!');
-      ui.notifications.info(`Socket test from ${data.userName} received!`);
-      return;
-    }
-
-    // Handle token lock/unlock from any user
-    if (data.action === 'lockToken') {
-      if (data.userId === game.user.id) {
-        console.log('SharedControl: Ignoring our own lock message');
-        return;
-      }
-      console.log('SharedControl: Processing remote lock for token:', data.tokenId, 'by user:', data.userId);
-      game.sharedControl?.stateMachine?.lockToken(data.tokenId, data.userId);
-      console.log('SharedControl: Lock applied, current locks:',
-        Array.from(game.sharedControl?.stateMachine?.lockedTokens?.entries() || []));
-      return;
-    }
-
-    if (data.action === 'unlockToken') {
-      if (data.userId === game.user.id) {
-        console.log('SharedControl: Ignoring our own unlock message');
-        return;
-      }
-      console.log('SharedControl: Processing remote unlock for token:', data.tokenId);
-      game.sharedControl?.stateMachine?.unlockToken(data.tokenId);
-      return;
-    }
-
-    // Pan broadcasts - only non-GMs respond
-    if (game.user.isGM) return;
-
-    if (data.action === 'pan') {
-      canvas.animatePan({
-        x: data.x,
-        y: data.y,
-        scale: data.scale,
-        duration: data.duration || 250
-      });
-    }
-  });
-
-  console.log('SharedControl: Socket listener registered');
-
-  // Add a test function to verify socket works
-  window.testSharedControlSocket = () => {
-    console.log('SharedControl: Sending test ping via game.socket...');
-    console.log('SharedControl: game.socket =', game.socket);
-    game.socket.emit('module.shared-control', {
-      action: 'test',
-      userId: game.user.id,
-      userName: game.user.name,
-      timestamp: Date.now()
-    });
-  };
-  console.log('SharedControl: Run testSharedControlSocket() in console to test socket');
-});
 
 /**
  * Wrap Token methods early (before tokens are created on canvas)
@@ -366,6 +254,13 @@ function wrapTokenMethodsEarly() {
     if (!game.settings.get('shared-control', 'enabled')) {
       debugLog('Module disabled, using original behavior');
       return originalClickLeft.call(this, event);
+    }
+
+    // Block all token interactions for non-GM when controls are locked (GM broadcast mode)
+    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+      debugLog('Controls locked, blocking token interaction');
+      event.stopPropagation();
+      return false;
     }
 
     debugLog('Module enabled, using tap workflow');

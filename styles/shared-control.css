@@ -395,6 +395,38 @@
     border-color: rgba(255, 100, 100, 0.5);
   }
 
+  /* Full-screen interaction blocker for players during GM broadcast */
+  .shared-control-interaction-blocker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .shared-control-interaction-blocker.active {
+    pointer-events: auto;
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .shared-control-interaction-blocker .blocker-message {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20, 20, 30, 0.9);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    border: 1px solid rgba(255, 100, 100, 0.5);
+  }
+
   /* FontAwesome icon sizing */
   .shared-control-btn i {
     font-size: inherit;

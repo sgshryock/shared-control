@@ -17,6 +17,7 @@ export class OverlayControls {
     this.controlPanel = null;
     this.lockButton = null;
     this.broadcastButton = null;
+    this.interactionBlocker = null;
     this.panInterval = null;
     this.isVisible = false;
     this.isLocked = false;
@@ -128,6 +129,14 @@ export class OverlayControls {
     // Add to DOM
     document.body.appendChild(this.container);
 
+    // Create interaction blocker for non-GM users (blocks all clicks during GM broadcast)
+    if (!game.user.isGM) {
+      this.interactionBlocker = document.createElement('div');
+      this.interactionBlocker.className = 'shared-control-interaction-blocker';
+      this.interactionBlocker.innerHTML = '<div class="blocker-message"><i class="fas fa-broadcast-tower"></i> GM is controlling the view</div>';
+      document.body.appendChild(this.interactionBlocker);
+    }
+
     // Apply button size
     this.updateButtonSize(buttonSize);
 
@@ -221,8 +230,8 @@ export class OverlayControls {
       return;
     }
 
-    // All other actions are blocked when locked
-    if (this.isLocked) {
+    // All other actions are blocked when locked (except for GM)
+    if (this.isLocked && !game.user.isGM) {
       return;
     }
 
@@ -253,25 +262,29 @@ export class OverlayControls {
 
   /**
    * Toggle broadcast mode
+   * When enabled, also locks controls for all players
    */
   toggleBroadcast() {
     if (!game.user.isGM) return;
 
     this.isBroadcasting = !this.isBroadcasting;
 
+    // Lock/unlock controls for all players when broadcast is toggled
+    game.settings.set('shared-control', 'controlsLocked', this.isBroadcasting);
+
     if (this.broadcastButton) {
       if (this.isBroadcasting) {
         this.broadcastButton.classList.add('active');
         this.broadcastButton.innerHTML = '<i class="fas fa-broadcast-tower"></i>';
-        ui.notifications.info('Broadcast mode enabled - your view will be synced to all players');
+        ui.notifications.info('Broadcast mode enabled - view synced to players, controls locked');
       } else {
         this.broadcastButton.classList.remove('active');
         this.broadcastButton.innerHTML = '<i class="fas fa-broadcast-tower"></i>';
-        ui.notifications.info('Broadcast mode disabled');
+        ui.notifications.info('Broadcast mode disabled - controls unlocked');
       }
     }
 
-    debugLog('Broadcast mode:', this.isBroadcasting);
+    debugLog('Broadcast mode:', this.isBroadcasting, '- Controls locked:', this.isBroadcasting);
   }
 
   /**
@@ -287,16 +300,27 @@ export class OverlayControls {
 
   /**
    * Update the lock state
+   * GM is never visually locked - they can always use controls
    * @param {Boolean} isLocked - Whether controls are locked
    */
   updateLockState(isLocked) {
     this.isLocked = isLocked;
 
     if (this.controlPanel) {
-      if (isLocked) {
+      // GM is never visually locked - they can always use controls
+      if (isLocked && !game.user.isGM) {
         this.controlPanel.classList.add('locked');
       } else {
         this.controlPanel.classList.remove('locked');
+      }
+    }
+
+    // Show/hide interaction blocker for non-GM users
+    if (this.interactionBlocker) {
+      if (isLocked) {
+        this.interactionBlocker.classList.add('active');
+      } else {
+        this.interactionBlocker.classList.remove('active');
       }
     }
 
@@ -310,7 +334,7 @@ export class OverlayControls {
       }
     }
 
-    debugLog('Lock state updated:', isLocked);
+    debugLog('Lock state updated:', isLocked, '(GM exempt:', game.user.isGM, ')');
   }
 
   /**
@@ -603,6 +627,11 @@ export class OverlayControls {
     if (this.container) {
       this.container.remove();
       this.container = null;
+    }
+
+    if (this.interactionBlocker) {
+      this.interactionBlocker.remove();
+      this.interactionBlocker = null;
     }
 
     this.controlPanel = null;

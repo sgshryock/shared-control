@@ -27,8 +27,15 @@ A Foundry VTT v13 module that enables intuitive touch screen interaction for tok
 - **Customizable Position**: Place controls on left or right side at top, center, or bottom
 - **Adjustable Button Size**: Configure button size for different screen sizes
 - **Auto-Fade**: Controls fade when idle and reappear on interaction
-- **GM Broadcast Mode**: GM can sync their view to all players
-- **Lock Controls**: Prevent all users from panning/zooming (GM configurable)
+- **GM Broadcast Mode**: GM can sync their view to all players while locking all player interactions
+- **Lock Controls**: Prevent players from panning/zooming (GM always exempt)
+
+### GM Broadcast Mode
+- **View Synchronization**: GM's pan/zoom is automatically pushed to all players
+- **Full Interaction Lock**: Players cannot interact with tokens, canvas, or hotbar during broadcast
+- **Visual Indicator**: Players see a "GM is controlling the view" message
+- **GM Exemption**: GM retains full control while players are locked
+- **Toggle On/Off**: Click the broadcast tower icon to enable/disable
 
 ### Touch Experience
 - **Touch-Only Mode**: Per-user setting to hide cursor for dedicated touch screen setups
@@ -200,13 +207,12 @@ SharedControl/
 │   ├── touch-workflow.js   # Touch event handling
 │   ├── state-machine.js    # Movement state management
 │   ├── ruler-preview.js    # Ruler integration
+│   ├── overlay-controls.js # On-screen zoom/pan controls
 │   ├── settings.js         # Settings registration
 │   ├── compat.js           # Module compatibility
 │   └── utils.js            # Utility functions
 ├── styles/
 │   └── shared-control.css  # Visual feedback styles
-├── templates/
-│   └── touch-controls.hbs  # UI templates
 ├── lang/
 │   └── en.json            # Localization
 └── README.md              # Documentation
@@ -253,6 +259,14 @@ This module is licensed under the MIT License. See LICENSE file for details.
 - **Special Thanks**: The Foundry VTT community for testing and feedback
 
 ## Changelog
+
+### Version 1.4.0 (2025-01-06)
+
+- **GM Broadcast Enhancement**: Broadcast mode now locks ALL player interactions (tokens, canvas, hotbar)
+- **Interaction Blocker**: Full-screen overlay prevents any player input during GM broadcast
+- **GM Exemption**: GM is always exempt from all locks and gesture blocking
+- **Visual Feedback**: Players see "GM is controlling the view" message during broadcast
+- Improved broadcast reliability using settings sync instead of sockets
 
 ### Version 1.3.0 (2025-01-06)
 

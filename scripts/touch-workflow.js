@@ -121,6 +121,12 @@ export class TouchWorkflowHandler {
   async handleCanvasTap(event) {
     if (!this.isEnabled()) return;
 
+    // Block all canvas interactions for non-GM when controls are locked (GM broadcast mode)
+    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+      debugLog('Controls locked, blocking canvas interaction');
+      return;
+    }
+
     const currentState = this.stateMachine.getState();
 
     // Only handle canvas taps in AWAITING_DESTINATION or PREVIEWING_PATH states
@@ -167,6 +173,13 @@ export class TouchWorkflowHandler {
   onCanvasPointerDown(event) {
     // Handle both mouse and touch events when module is enabled
     if (!this.isEnabled()) return;
+
+    // Block all canvas interactions for non-GM when controls are locked (GM broadcast mode)
+    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+      debugLog('Controls locked, blocking pointer interaction');
+      event.stopPropagation();
+      return;
+    }
 
     // Prevent scroll/zoom in touch-only mode for touch events
     if (this.touchOnlyMode && event.pointerType === 'touch') {
@@ -219,16 +232,18 @@ export class TouchWorkflowHandler {
     // Store references for cleanup
     this._gestureHandlers = {};
 
-    // Block wheel events on canvas (scroll zoom)
+    // Block wheel events on canvas (scroll zoom) - GM is exempt
     this._gestureHandlers.wheel = (e) => {
+      if (game.user.isGM) return; // GM can always use gestures
       if (e.target.closest('#board') || e.target.closest('canvas')) {
         e.preventDefault();
         e.stopPropagation();
       }
     };
 
-    // Block touch gestures (pinch zoom, pan)
+    // Block touch gestures (pinch zoom, pan) - GM is exempt
     this._gestureHandlers.touchmove = (e) => {
+      if (game.user.isGM) return; // GM can always use gestures
       // Block multi-touch gestures on canvas
       if (e.touches.length > 1) {
         if (e.target.closest('#board') || e.target.closest('canvas')) {
@@ -238,14 +253,16 @@ export class TouchWorkflowHandler {
       }
     };
 
-    // Block gesturestart/gesturechange (Safari)
+    // Block gesturestart/gesturechange (Safari) - GM is exempt
     this._gestureHandlers.gesturestart = (e) => {
+      if (game.user.isGM) return; // GM can always use gestures
       if (e.target.closest('#board') || e.target.closest('canvas')) {
         e.preventDefault();
       }
     };
 
     this._gestureHandlers.gesturechange = (e) => {
+      if (game.user.isGM) return; // GM can always use gestures
       if (e.target.closest('#board') || e.target.closest('canvas')) {
         e.preventDefault();
       }

@@ -107,6 +107,28 @@ export function registerSettings() {
     }
   });
 
+  // World setting: GM broadcast pan data (syncs view to all players)
+  game.settings.register('shared-control', 'broadcastPanData', {
+    name: 'Broadcast Pan Data',
+    hint: 'Internal setting for GM to broadcast view to players',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: null,
+    onChange: value => {
+      // Only non-GM clients should respond to broadcast
+      if (game.user.isGM || !value) return;
+
+      // Animate pan to the broadcast position
+      canvas.animatePan({
+        x: value.x,
+        y: value.y,
+        scale: value.scale,
+        duration: value.duration || 250
+      });
+    }
+  });
+
   // World setting: Roles that can see the lock button
   game.settings.register('shared-control', 'lockButtonRoles', {
     name: game.i18n.localize('shared-control.settings.lockButtonRoles.name'),
