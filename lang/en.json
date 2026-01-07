@@ -9,13 +9,13 @@
         "name": "Hide Cursor (Touch-Only Mode)",
         "hint": "Hides the mouse cursor for dedicated touch screen setups. The tap workflow works for both mouse and touch when the module is enabled."
       },
-      "tapTimeout": {
-        "name": "Path Preview Timeout",
-        "hint": "How long in milliseconds the movement path preview stays active before expiring. Tap the token to cancel, or tap the destination again to confirm. Default: 5 minutes (300000ms)."
-      },
       "tapTolerance": {
         "name": "Tap Tolerance",
         "hint": "Distance in pixels for determining if two taps are in the same location (default: 25px)."
+      },
+      "trackMovement": {
+        "name": "Track Movement Distance",
+        "hint": "Color-code movement paths based on character speed (green = allowed, yellow = slightly over, red = too far). Reads movement speed from character sheet."
       },
       "animationSpeed": {
         "name": "Animation Speed",

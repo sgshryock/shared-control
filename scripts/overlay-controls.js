@@ -5,18 +5,31 @@
 
 import { debugLog } from './utils.js';
 
+// Constants
+const ZOOM_FACTOR = 1.25;
+const PAN_AMOUNT = 100; // Pixels to pan per tick
+const PAN_INTERVAL = 50; // Milliseconds between pans
+const FADE_DELAY = 5000; // Milliseconds before controls fade
+
 export class OverlayControls {
   constructor() {
     this.container = null;
     this.controlPanel = null;
     this.lockButton = null;
     this.broadcastButton = null;
+    this.gmModeButton = null;
+    this.blackoutButton = null;
+    this.interactionBlocker = null;
+    this.blackoutOverlay = null;
     this.panInterval = null;
     this.isVisible = false;
     this.isLocked = false;
     this.isBroadcasting = false;
+    this.isGmNormalMode = false;
+    this.isBlackout = false;
+    this.lockWasActiveBeforeBlackout = false;
     this.fadeTimeout = null;
-    this.fadeDelay = 5000; // 5 seconds
+    this.fadeDelay = FADE_DELAY;
   }
 
   /**
@@ -102,6 +115,14 @@ export class OverlayControls {
       this.broadcastButton.title = 'Broadcast View to Players';
       this.broadcastButton.innerHTML = '<i class="fas fa-broadcast-tower"></i>';
       buttonRow.appendChild(this.broadcastButton);
+
+      // Create GM mode toggle button (switches between tap workflow and normal Foundry)
+      this.gmModeButton = document.createElement('button');
+      this.gmModeButton.className = 'shared-control-btn shared-control-gm-mode-btn';
+      this.gmModeButton.dataset.action = 'toggle-gm-mode';
+      this.gmModeButton.title = 'Toggle Normal Foundry Mode (drag-and-drop)';
+      this.gmModeButton.innerHTML = '<i class="fas fa-hand-pointer"></i>';
+      buttonRow.appendChild(this.gmModeButton);
     }
 
     // Create lock button (only for users with permission)
@@ -114,6 +135,16 @@ export class OverlayControls {
       buttonRow.appendChild(this.lockButton);
     }
 
+    // Create blackout button (GM only) - hides screen from players
+    if (game.user.isGM) {
+      this.blackoutButton = document.createElement('button');
+      this.blackoutButton.className = 'shared-control-btn shared-control-blackout-btn';
+      this.blackoutButton.dataset.action = 'toggle-blackout';
+      this.blackoutButton.title = 'Blackout Screen (hide from players)';
+      this.blackoutButton.innerHTML = '<i class="fas fa-eye-slash"></i>';
+      buttonRow.appendChild(this.blackoutButton);
+    }
+
     // Only add button row if it has buttons
     if (buttonRow.children.length > 0) {
       this.controlPanel.appendChild(buttonRow);
@@ -121,6 +152,20 @@ export class OverlayControls {
 
     // Add to DOM
     document.body.appendChild(this.container);
+
+    // Create interaction blocker for non-GM users (blocks all clicks during GM broadcast)
+    if (!game.user.isGM) {
+      this.interactionBlocker = document.createElement('div');
+      this.interactionBlocker.className = 'shared-control-interaction-blocker';
+      this.interactionBlocker.innerHTML = '<div class="blocker-message"><i class="fas fa-lock"></i> GM has locked the screen</div>';
+      document.body.appendChild(this.interactionBlocker);
+
+      // Create blackout overlay for non-GM users
+      this.blackoutOverlay = document.createElement('div');
+      this.blackoutOverlay.className = 'shared-control-blackout-overlay';
+      this.blackoutOverlay.innerHTML = '<div class="blackout-message"><i class="fas fa-eye-slash"></i> Please wait...</div>';
+      document.body.appendChild(this.blackoutOverlay);
+    }
 
     // Apply button size
     this.updateButtonSize(buttonSize);
@@ -132,6 +177,20 @@ export class OverlayControls {
     // Apply current lock state
     const isLocked = game.settings.get('shared-control', 'controlsLocked');
     this.updateLockState(isLocked);
+
+    // Apply current broadcast state
+    const isBroadcasting = game.settings.get('shared-control', 'broadcastMode');
+    this.updateBroadcastState(isBroadcasting);
+
+    // Apply current GM mode state
+    if (game.user.isGM) {
+      const gmNormalMode = game.settings.get('shared-control', 'gmNormalMode');
+      this.updateGmModeState(gmNormalMode);
+    }
+
+    // Apply current blackout state
+    const isBlackout = game.settings.get('shared-control', 'blackoutMode');
+    this.updateBlackoutState(isBlackout);
 
     // Start fade timer
     this.resetFadeTimer();
@@ -170,13 +229,21 @@ export class OverlayControls {
       btn.addEventListener('pointerup', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        btn.classList.remove('active');
+        // Don't remove active class for toggle buttons - they manage their own state
+        const isToggleAction = action.startsWith('toggle-');
+        if (!isToggleAction) {
+          btn.classList.remove('active');
+        }
         this.handleAction(action, false);
       });
 
       // Handle pointer leave (finger/mouse moves off button)
       btn.addEventListener('pointerleave', (e) => {
-        btn.classList.remove('active');
+        // Don't remove active class for toggle buttons - they manage their own state
+        const isToggleAction = action.startsWith('toggle-');
+        if (!isToggleAction) {
+          btn.classList.remove('active');
+        }
         this.handleAction(action, false);
       });
 
@@ -215,8 +282,18 @@ export class OverlayControls {
       return;
     }
 
-    // All other actions are blocked when locked
-    if (this.isLocked) {
+    if (action === 'toggle-gm-mode') {
+      if (isStart) this.toggleGmMode();
+      return;
+    }
+
+    if (action === 'toggle-blackout') {
+      if (isStart) this.toggleBlackout();
+      return;
+    }
+
+    // All other actions are blocked when locked (except for GM)
+    if (this.isLocked && !game.user.isGM) {
       return;
     }
 
@@ -247,25 +324,66 @@ export class OverlayControls {
 
   /**
    * Toggle broadcast mode
+   * Enabling broadcast locks controls, but disabling broadcast never unlocks
    */
   toggleBroadcast() {
     if (!game.user.isGM) return;
 
-    this.isBroadcasting = !this.isBroadcasting;
+    const newState = !this.isBroadcasting;
 
+    // Set world setting to sync broadcast state to all clients
+    game.settings.set('shared-control', 'broadcastMode', newState);
+
+    // Enabling broadcast always locks, but disabling never unlocks
+    if (newState && !this.isLocked) {
+      game.settings.set('shared-control', 'controlsLocked', true);
+    }
+
+    if (newState) {
+      ui.notifications.info('Broadcast mode enabled - view synced to players');
+    } else {
+      ui.notifications.info('Broadcast mode disabled - players still locked');
+    }
+
+    debugLog('Broadcast mode toggled:', newState);
+  }
+
+  /**
+   * Update broadcast state (called from settings onChange)
+   * @param {Boolean} isBroadcasting - Whether broadcast mode is active
+   */
+  updateBroadcastState(isBroadcasting) {
+    this.isBroadcasting = isBroadcasting;
+
+    // Update button state (GM only)
     if (this.broadcastButton) {
-      if (this.isBroadcasting) {
+      if (isBroadcasting) {
         this.broadcastButton.classList.add('active');
-        this.broadcastButton.innerHTML = '<i class="fas fa-broadcast-tower"></i>';
-        ui.notifications.info('Broadcast mode enabled - your view will be synced to all players');
       } else {
         this.broadcastButton.classList.remove('active');
-        this.broadcastButton.innerHTML = '<i class="fas fa-broadcast-tower"></i>';
-        ui.notifications.info('Broadcast mode disabled');
       }
     }
 
-    debugLog('Broadcast mode:', this.isBroadcasting);
+    // Update blocker message for non-GM clients
+    this.updateBlockerMessage();
+
+    debugLog('Broadcast state updated:', isBroadcasting);
+  }
+
+  /**
+   * Update the interaction blocker message based on current state
+   */
+  updateBlockerMessage() {
+    if (this.interactionBlocker) {
+      const messageEl = this.interactionBlocker.querySelector('.blocker-message');
+      if (messageEl) {
+        if (this.isBroadcasting) {
+          messageEl.innerHTML = '<i class="fas fa-broadcast-tower"></i> GM is controlling the view';
+        } else {
+          messageEl.innerHTML = '<i class="fas fa-lock"></i> GM has locked the screen';
+        }
+      }
+    }
   }
 
   /**
@@ -280,17 +398,132 @@ export class OverlayControls {
   }
 
   /**
+   * Toggle GM normal mode (switches between tap workflow and normal Foundry drag-and-drop)
+   */
+  toggleGmMode() {
+    if (!game.user.isGM) return;
+
+    const newState = !this.isGmNormalMode;
+    game.settings.set('shared-control', 'gmNormalMode', newState);
+
+    if (newState) {
+      ui.notifications.info('Normal Foundry mode enabled - using drag-and-drop');
+    } else {
+      ui.notifications.info('Tap workflow mode enabled');
+    }
+
+    debugLog('GM normal mode toggled:', newState);
+  }
+
+  /**
+   * Update GM mode button state
+   * @param {Boolean} isNormalMode - Whether GM is using normal Foundry mode
+   */
+  updateGmModeState(isNormalMode) {
+    this.isGmNormalMode = isNormalMode;
+
+    if (this.gmModeButton) {
+      if (isNormalMode) {
+        // Normal Foundry mode (default) - no highlight
+        this.gmModeButton.classList.remove('active');
+        this.gmModeButton.innerHTML = '<i class="fas fa-mouse-pointer"></i>';
+        this.gmModeButton.title = 'Using Normal Foundry Mode (click for tap workflow)';
+      } else {
+        // Tap workflow mode - highlight to show non-default
+        this.gmModeButton.classList.add('active');
+        this.gmModeButton.innerHTML = '<i class="fas fa-hand-pointer"></i>';
+        this.gmModeButton.title = 'Using Tap Workflow (click for normal Foundry)';
+      }
+    }
+
+    debugLog('GM mode state updated:', isNormalMode);
+  }
+
+  /**
+   * Toggle blackout mode (hides screen from players and locks controls)
+   * Lock behavior:
+   * - If lock was OFF when blackout enabled: lock turns on, and turns off when blackout disabled
+   * - If lock was ON when blackout enabled: lock stays on when blackout disabled
+   */
+  toggleBlackout() {
+    if (!game.user.isGM) return;
+
+    const newState = !this.isBlackout;
+    game.settings.set('shared-control', 'blackoutMode', newState);
+
+    if (newState) {
+      // Enabling blackout - remember if lock was already active
+      this.lockWasActiveBeforeBlackout = this.isLocked;
+      if (!this.isLocked) {
+        game.settings.set('shared-control', 'controlsLocked', true);
+      }
+      ui.notifications.info('Blackout enabled - players cannot see the screen');
+    } else {
+      // Disabling blackout - only unlock if lock wasn't active before blackout
+      if (!this.lockWasActiveBeforeBlackout) {
+        game.settings.set('shared-control', 'controlsLocked', false);
+      }
+      ui.notifications.info('Blackout disabled');
+    }
+
+    debugLog('Blackout mode toggled:', newState, 'lockWasActiveBeforeBlackout:', this.lockWasActiveBeforeBlackout);
+  }
+
+  /**
+   * Update blackout state
+   * @param {Boolean} isBlackout - Whether blackout is active
+   */
+  updateBlackoutState(isBlackout) {
+    this.isBlackout = isBlackout;
+
+    // Update button state (GM only)
+    if (this.blackoutButton) {
+      if (isBlackout) {
+        this.blackoutButton.classList.add('active');
+        this.blackoutButton.innerHTML = '<i class="fas fa-eye"></i>';
+        this.blackoutButton.title = 'Blackout Active (click to show screen)';
+      } else {
+        this.blackoutButton.classList.remove('active');
+        this.blackoutButton.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        this.blackoutButton.title = 'Blackout Screen (hide from players)';
+      }
+    }
+
+    // Show/hide blackout overlay for non-GM users
+    if (this.blackoutOverlay) {
+      if (isBlackout) {
+        this.blackoutOverlay.classList.add('active');
+      } else {
+        this.blackoutOverlay.classList.remove('active');
+      }
+    }
+
+    debugLog('Blackout state updated:', isBlackout);
+  }
+
+  /**
    * Update the lock state
+   * GM is never visually locked - they can always use controls
    * @param {Boolean} isLocked - Whether controls are locked
    */
   updateLockState(isLocked) {
     this.isLocked = isLocked;
 
     if (this.controlPanel) {
-      if (isLocked) {
+      // GM is never visually locked - they can always use controls
+      if (isLocked && !game.user.isGM) {
         this.controlPanel.classList.add('locked');
       } else {
         this.controlPanel.classList.remove('locked');
+      }
+    }
+
+    // Show/hide interaction blocker for non-GM users
+    if (this.interactionBlocker) {
+      if (isLocked) {
+        this.interactionBlocker.classList.add('active');
+      } else {
+        this.interactionBlocker.classList.remove('active');
       }
     }
 
@@ -304,7 +537,7 @@ export class OverlayControls {
       }
     }
 
-    debugLog('Lock state updated:', isLocked);
+    debugLog('Lock state updated:', isLocked, '(GM exempt:', game.user.isGM, ')');
   }
 
   /**
@@ -315,7 +548,7 @@ export class OverlayControls {
     if (!canvas?.stage) return;
 
     const currentScale = canvas.stage.scale.x;
-    const zoomFactor = 1.25;
+    const zoomFactor = ZOOM_FACTOR;
 
     let newScale;
     if (direction > 0) {
@@ -368,8 +601,8 @@ export class OverlayControls {
   startPanning(direction) {
     this.stopPanning(); // Clear any existing interval
 
-    const panAmount = 100; // Pixels to pan per tick
-    const panInterval = 50; // Milliseconds between pans
+    const panAmount = PAN_AMOUNT;
+    const panInterval = PAN_INTERVAL;
 
     // Perform initial pan immediately
     this.performPan(direction, panAmount);
@@ -444,6 +677,8 @@ export class OverlayControls {
    * Center view on the currently controlled token
    */
   centerOnToken() {
+    if (!canvas?.stage) return;
+
     // Get the first controlled token, or the user's character token
     let token = canvas.tokens?.controlled?.[0];
 
@@ -597,6 +832,16 @@ export class OverlayControls {
     if (this.container) {
       this.container.remove();
       this.container = null;
+    }
+
+    if (this.interactionBlocker) {
+      this.interactionBlocker.remove();
+      this.interactionBlocker = null;
+    }
+
+    if (this.blackoutOverlay) {
+      this.blackoutOverlay.remove();
+      this.blackoutOverlay = null;
     }
 
     this.controlPanel = null;

@@ -3,6 +3,9 @@
  * Helper functions for grid calculations, distance checking, and validation
  */
 
+// Constants
+const EPSILON = 0.0001; // Tolerance for floating point comparisons
+
 /**
  * Debug logging utility - only logs when debug mode is enabled
  * @param {...any} args - Arguments to log
@@ -219,10 +222,10 @@ export function isPathClear(token, waypoints) {
  * Check if two line segments intersect
  * @returns {Boolean} - True if segments intersect
  */
-function lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+export function lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
   const denom = ((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1));
 
-  if (Math.abs(denom) < 0.0001) {
+  if (Math.abs(denom) < EPSILON) {
     // Lines are parallel
     return false;
   }

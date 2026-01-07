@@ -3,7 +3,7 @@
  * Main module entry point
  *
  * @author Gordon Shryock
- * @version 1.0.0
+ * @version 1.4.0
  */
 
 import { registerSettings } from './settings.js';
@@ -23,8 +23,6 @@ class SharedControl {
     this.rulerPreview = null;
     this.touchWorkflow = null;
     this.overlayControls = null;
-    this.compatibility = null;
-    this.socket = null;
   }
 
   /**
@@ -58,9 +56,6 @@ class SharedControl {
       this.overlayControls = new OverlayControls();
       this.overlayControls.initialize();
 
-      // Setup socket for broadcast functionality
-      this.setupSocket();
-
       // Attach canvas listener if canvas is already ready
       if (canvas?.stage) {
         debugLog('Canvas already ready, attaching listener now');
@@ -76,44 +71,21 @@ class SharedControl {
   }
 
   /**
-   * Setup socket for GM broadcast functionality
-   */
-  setupSocket() {
-    this.socket = game.socket;
-
-    // Listen for broadcast commands from GM
-    this.socket.on('module.shared-control', (data) => {
-      debugLog('Received socket message:', data);
-
-      // Only non-GMs should respond to broadcasts
-      if (game.user.isGM) return;
-
-      if (data.action === 'pan') {
-        canvas.animatePan({
-          x: data.x,
-          y: data.y,
-          scale: data.scale,
-          duration: data.duration || 250
-        });
-      }
-    });
-
-    debugLog('Socket listener registered');
-  }
-
-  /**
    * Broadcast pan/zoom to all players (GM only)
+   * Uses world setting for reliable cross-client sync
    * @param {Object} panData - Pan data {x, y, scale, duration}
    */
   broadcastPan(panData) {
     if (!game.user.isGM) return;
 
-    this.socket.emit('module.shared-control', {
-      action: 'pan',
+    // Use world setting for broadcast - this syncs automatically to all clients
+    // Include timestamp to ensure even identical positions trigger onChange
+    game.settings.set('shared-control', 'broadcastPanData', {
       x: panData.x,
       y: panData.y,
       scale: panData.scale,
-      duration: panData.duration || 250
+      duration: panData.duration || 250,
+      timestamp: Date.now()
     });
 
     debugLog('Broadcast pan:', panData);
@@ -183,6 +155,7 @@ Hooks.once('init', async () => {
   wrapTokenMethodsEarly();
 });
 
+
 /**
  * Wrap Token methods early (before tokens are created on canvas)
  */
@@ -236,6 +209,19 @@ function wrapTokenMethodsEarly() {
       return originalClickLeft.call(this, event);
     }
 
+    // GM in normal mode uses standard Foundry behavior
+    if (game.user.isGM && game.settings.get('shared-control', 'gmNormalMode')) {
+      debugLog('GM normal mode, using original behavior');
+      return originalClickLeft.call(this, event);
+    }
+
+    // Block all token interactions for non-GM when controls are locked (GM broadcast mode)
+    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+      debugLog('Controls locked, blocking token interaction');
+      event.stopPropagation();
+      return false;
+    }
+
     debugLog('Module enabled, using tap workflow');
     return this._sharedControlHandleTokenTap(originalClickLeft.bind(this), event);
   };
@@ -244,15 +230,21 @@ function wrapTokenMethodsEarly() {
   TokenClass.prototype._onDragLeftStart = function(event) {
     debugLog('Drag start intercepted');
 
-    if (game.settings.get('shared-control', 'enabled')) {
-      debugLog('Preventing drag (using tap workflow)');
-      event.stopPropagation();
-      event.preventDefault();
-      return false;
+    if (!game.settings.get('shared-control', 'enabled')) {
+      debugLog('Module disabled, allowing drag');
+      return originalDragLeftStart.call(this, event);
     }
 
-    debugLog('Module disabled, allowing drag');
-    return originalDragLeftStart.call(this, event);
+    // GM in normal mode can always drag
+    if (game.user.isGM && game.settings.get('shared-control', 'gmNormalMode')) {
+      debugLog('GM normal mode, allowing drag');
+      return originalDragLeftStart.call(this, event);
+    }
+
+    debugLog('Preventing drag (using tap workflow)');
+    event.stopPropagation();
+    event.preventDefault();
+    return false;
   };
 
   debugLog('Token methods wrapped early (before canvas creation)');
@@ -261,7 +253,7 @@ function wrapTokenMethodsEarly() {
 // Setup on Foundry ready
 Hooks.once('ready', async () => {
   // Check compatibility with other modules
-  game.sharedControl.compatibility = checkCompatibility();
+  checkCompatibility();
 
   // Initialize the module
   await game.sharedControl.initialize();

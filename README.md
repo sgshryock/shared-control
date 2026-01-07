@@ -4,6 +4,7 @@ A Foundry VTT v13 module that enables intuitive touch screen interaction for tok
 
 ## Features
 
+### Movement
 - **Tap-Based Workflow**: Simple tap interaction for token selection, movement preview, and confirmation
 - **A* Pathfinding**: Intelligent pathfinding that automatically routes around walls and obstacles
 - **Movement Preview**: Visual path overlay showing the route with distance measurement
@@ -12,11 +13,55 @@ A Foundry VTT v13 module that enables intuitive touch screen interaction for tok
   - Yellow: Within double movement (dash)
   - Red: Exceeds double movement
   - Cyan: No movement tracking enabled
-- **Touch-Only Mode**: Per-user setting to hide cursor for dedicated touch screen setups
-- **Multi-System Support**: Works with D&D 5e, Pathfinder 2e, SWADE, Cosmere RPG, and others
 - **Wall Detection**: Respects walls and movement-blocking terrain
-- **Debug Visualization**: Built-in debug view to troubleshoot pathfinding issues
+- **Multi-System Support**: Works with D&D 5e, Pathfinder 2e, SWADE, Cosmere RPG, and others
+
+### Token Locking
+- **Concurrent Use Protection**: Prevents multiple users from moving the same token simultaneously
+- **Automatic Lock Release**: Locks are released when movement completes or is cancelled
+- **Stale Lock Timeout**: Locks automatically expire after 5 minutes if not released
+- **GM Override**: GMs can always take control of any token, automatically cancelling the other user's action
+
+### Overlay Controls
+- **On-Screen Buttons**: Zoom in/out, pan in all directions, and center on token
+- **Customizable Position**: Place controls on left or right side at top, center, or bottom
+- **Adjustable Button Size**: Configure button size for different screen sizes
+- **Auto-Fade**: Controls fade when idle and reappear on interaction
+- **Lock Controls**: Prevent players from moving tokens or interacting with canvas
+- **Visual Button States**: Active buttons glow with pulsing animations (red for lock, green for broadcast, gray for blackout)
+
+### GM Controls
+- **Broadcast Mode**: Sync GM's view to all players with full interaction lock
+- **Blackout Mode**: Hide the entire screen from players (shows black overlay)
+- **GM Normal Mode**: Toggle between tap workflow and standard Foundry drag-and-drop
+- **GM Exemption**: GM is always exempt from all locks and restrictions
+
+### GM Broadcast Mode
+- **View Synchronization**: GM's pan/zoom is automatically pushed to all players
+- **Full Interaction Lock**: Players cannot interact with tokens, canvas, or hotbar during broadcast
+- **Visual Indicator**: Players see "GM is controlling the view" message
+- **GM Exemption**: GM retains full control while players are locked
+- **Toggle On/Off**: Click the broadcast tower icon to enable/disable
+- **Lock Persistence**: Disabling broadcast keeps players locked (must manually unlock)
+
+### GM Blackout Mode
+- **Screen Hiding**: Players see a completely black screen
+- **Full Interaction Lock**: Automatically locks all player interactions
+- **Visual Indicator**: Players see "Please wait..." message on black background
+- **Smart Lock Behavior**: If lock was already on, disabling blackout keeps lock on; if lock was off, disabling blackout also unlocks
+- **Toggle On/Off**: Click the eye-slash icon to enable/disable
+
+### GM Normal Mode
+- **Standard Foundry Controls**: When enabled, GM uses normal drag-and-drop instead of tap workflow
+- **Per-Client Setting**: Only affects the GM's own interaction style
+- **Default On**: GM Normal Mode is enabled by default for familiar Foundry experience
+- **Toggle On/Off**: Click the mouse pointer icon to switch modes
+
+### Touch Experience
+- **Touch-Only Mode**: Per-user setting to hide cursor for dedicated touch screen setups
+- **Gesture Blocking**: Optionally disable pinch-zoom and swipe-pan to prevent accidental movements
 - **Permission Aware**: Only allows movement of tokens the user owns or controls
+- **Debug Visualization**: Built-in debug view to troubleshoot pathfinding issues
 
 ## How It Works
 
@@ -66,15 +111,19 @@ Access settings via **Configure Settings** → **Module Settings** → **SharedC
 #### World Settings (GM Only)
 
 - **Enable SharedControl**: Master toggle to enable/disable the module
-- **Tap Timeout**: Time window for detecting confirmation taps (default: 500ms)
 - **Tap Tolerance**: Distance in pixels for "same location" detection (default: 25px)
+- **Track Movement Distance**: Color-code paths based on character speed (default: enabled)
+- **Animation Speed**: Token movement animation speed in ms per grid square (default: 200ms)
+- **Enable Touch Gestures**: Allow pinch-zoom and swipe-pan on canvas (default: disabled)
+- **Lock Button Visibility**: Minimum role required to see/use the lock button (default: GM only)
+- **Debug Mode**: Enable verbose console logging for troubleshooting
 
 #### User Settings
 
-- **Touch-Only Mode**: Disables traditional mouse controls for token movement
-  - Recommended for dedicated touch screen setups
-  - Each player can configure independently
-  - GM can enable for specific users
+- **Touch-Only Mode**: Hides mouse cursor for dedicated touch screen setups
+- **Show Overlay Controls**: Display on-screen zoom/pan buttons (default: enabled)
+- **Overlay Button Size**: Size of overlay control buttons (default: 50px)
+- **Overlay Position**: Where to display the control panel (left/right, top/center/bottom)
 
 ## Recommended Modules
 
@@ -98,6 +147,7 @@ SharedControl is designed to work with all game systems:
 - ✅ **D&D 5e**: Full support with movement validation
 - ✅ **Pathfinder 2e**: Full support with action economy
 - ✅ **SWADE**: Full support with running rules
+- ✅ **Cosmere RPG**: Full support with movement tracking
 - ✅ **Generic Systems**: Basic movement without system-specific rules
 
 ## Requirements
@@ -177,13 +227,12 @@ SharedControl/
 │   ├── touch-workflow.js   # Touch event handling
 │   ├── state-machine.js    # Movement state management
 │   ├── ruler-preview.js    # Ruler integration
+│   ├── overlay-controls.js # On-screen zoom/pan controls
 │   ├── settings.js         # Settings registration
 │   ├── compat.js           # Module compatibility
 │   └── utils.js            # Utility functions
 ├── styles/
 │   └── shared-control.css  # Visual feedback styles
-├── templates/
-│   └── touch-controls.hbs  # UI templates
 ├── lang/
 │   └── en.json            # Localization
 └── README.md              # Documentation
@@ -230,6 +279,50 @@ This module is licensed under the MIT License. See LICENSE file for details.
 - **Special Thanks**: The Foundry VTT community for testing and feedback
 
 ## Changelog
+
+### Version 1.5.0 (2025-01-06)
+
+- **GM Normal Mode**: New toggle button for GM to switch between tap workflow and standard Foundry drag-and-drop
+- **Blackout Mode**: New button to hide screen from players with black overlay and "Please wait..." message
+- **Smart Lock Behavior**: Blackout and broadcast buttons intelligently manage lock state
+- **Visual Button States**: All toggle buttons (lock, broadcast, blackout) now have pulsing glow animations when active
+- **Context-Aware Messages**: Players see "GM is controlling the view" during broadcast, "GM has locked the screen" when just locked
+- **Code Cleanup**: Removed dead socket code, unused methods, and improved logging consistency
+- **Safety Improvements**: Added canvas existence checks to prevent errors during initialization
+
+### Version 1.4.0 (2025-01-06)
+
+- **GM Broadcast Enhancement**: Broadcast mode now locks ALL player interactions (tokens, canvas, hotbar)
+- **Interaction Blocker**: Full-screen overlay prevents any player input during GM broadcast
+- **GM Exemption**: GM is always exempt from all locks and gesture blocking
+- **Visual Feedback**: Players see "GM is controlling the view" message during broadcast
+- Improved broadcast reliability using settings sync instead of sockets
+
+### Version 1.3.0 (2025-01-06)
+
+- Added token locking to prevent concurrent movement by multiple users
+- Added GM override capability for locked tokens
+- Automatic cancellation of player's action when GM takes control
+- Stale lock timeout (5 minutes) for abandoned locks
+- Fixed Foundry v13 deprecation warnings (BaseRuler#clear, CHAT_MESSAGE_TYPES)
+- Removed unused tap timeout setting
+- Fixed multi-touch detection for PIXI events
+- Improved code organization and error handling
+
+### Version 1.2.0 (2025-01-04)
+
+- Added GM broadcast mode to sync view with all players
+- Added overlay controls for zoom and pan
+- Added lock feature to prevent pan/zoom
+- Added gesture blocking option
+- Customizable overlay position and button size
+
+### Version 1.1.0 (2025-01-04)
+
+- Added overlay controls (zoom/pan buttons)
+- Added gesture blocking option
+- Added lock feature for controls
+- Cyan glow selection highlight for tokens
 
 ### Version 1.0.0 (2025-01-04)
 

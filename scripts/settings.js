@@ -31,21 +31,6 @@ export function registerSettings() {
     }
   });
 
-  // World setting: Tap timeout (how long the path preview stays active)
-  game.settings.register('shared-control', 'tapTimeout', {
-    name: game.i18n.localize('shared-control.settings.tapTimeout.name'),
-    hint: game.i18n.localize('shared-control.settings.tapTimeout.hint'),
-    scope: 'world',
-    config: true,
-    type: Number,
-    default: 300000,  // 5 minutes
-    range: {
-      min: 10000,     // 10 seconds minimum
-      max: 600000,    // 10 minutes maximum
-      step: 10000     // 10 second increments
-    }
-  });
-
   // World setting: Tap tolerance
   game.settings.register('shared-control', 'tapTolerance', {
     name: game.i18n.localize('shared-control.settings.tapTolerance.name'),
@@ -63,8 +48,8 @@ export function registerSettings() {
 
   // World setting: Track movement distance
   game.settings.register('shared-control', 'trackMovement', {
-    name: 'Track Movement Distance',
-    hint: 'Color-code movement paths based on character speed (green = allowed, yellow = slightly over, red = too far). Reads movement speed from character sheet.',
+    name: game.i18n.localize('shared-control.settings.trackMovement.name'),
+    hint: game.i18n.localize('shared-control.settings.trackMovement.hint'),
     scope: 'world',
     config: true,
     type: Boolean,
@@ -118,6 +103,73 @@ export function registerSettings() {
     onChange: value => {
       if (game.sharedControl?.overlayControls) {
         game.sharedControl.overlayControls.updateLockState(value);
+      }
+    }
+  });
+
+  // World setting: Broadcast mode active (syncs broadcast state to all clients)
+  game.settings.register('shared-control', 'broadcastMode', {
+    name: 'Broadcast Mode',
+    hint: 'Internal setting to track if GM is broadcasting',
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateBroadcastState(value);
+      }
+    }
+  });
+
+  // World setting: GM broadcast pan data (syncs view to all players)
+  game.settings.register('shared-control', 'broadcastPanData', {
+    name: 'Broadcast Pan Data',
+    hint: 'Internal setting for GM to broadcast view to players',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: null,
+    onChange: value => {
+      // Only non-GM clients should respond to broadcast
+      if (game.user.isGM || !value || !canvas?.stage) return;
+
+      // Animate pan to the broadcast position
+      canvas.animatePan({
+        x: value.x,
+        y: value.y,
+        scale: value.scale,
+        duration: value.duration || 250
+      });
+    }
+  });
+
+  // World setting: Blackout mode (hides screen from players)
+  game.settings.register('shared-control', 'blackoutMode', {
+    name: 'Blackout Mode',
+    hint: 'When enabled, players see a black screen and cannot see or interact with anything',
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateBlackoutState(value);
+      }
+    }
+  });
+
+  // Client setting: GM uses normal Foundry controls (bypasses tap workflow)
+  game.settings.register('shared-control', 'gmNormalMode', {
+    name: 'GM Normal Mode',
+    hint: 'When enabled, GM uses normal Foundry drag-and-drop instead of tap workflow',
+    scope: 'client',
+    config: false,
+    type: Boolean,
+    default: true,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateGmModeState(value);
       }
     }
   });

@@ -4,7 +4,11 @@
  */
 
 import * as utils from './utils.js';
-import { debugLog } from './utils.js';
+import { debugLog, lineSegmentsIntersect } from './utils.js';
+
+// Constants for A* pathfinding
+const DIAGONAL_COST = 1.41; // √2 ≈ 1.414
+const MAX_PATHFINDING_ITERATIONS = 5000; // Prevent infinite loops on large maps
 
 export class RulerPreview {
   constructor() {
@@ -38,7 +42,12 @@ export class RulerPreview {
     // Start pulsing animation
     let pulsePhase = 0;
     const animate = () => {
+      // Safety checks to prevent memory leaks if token is destroyed
       if (!this.selectionGraphics || !this._highlightedToken) return;
+      if (this._highlightedToken.destroyed || !this._highlightedToken.scene) {
+        this.clearSelectionHighlight();
+        return;
+      }
 
       this.selectionGraphics.clear();
 
@@ -297,7 +306,7 @@ export class RulerPreview {
         if (!c || c.length < 4) continue;
 
         // Check for line segment intersection using our robust algorithm
-        if (this.lineSegmentsIntersect(from.x, from.y, to.x, to.y, c[0], c[1], c[2], c[3])) {
+        if (lineSegmentsIntersect(from.x, from.y, to.x, to.y, c[0], c[1], c[2], c[3])) {
           debugLog('Wall blocks path from', from, 'to', to);
           return true;
         }
@@ -461,34 +470,15 @@ export class RulerPreview {
 
     // Check intersection with each edge of the rectangle
     // Left edge
-    if (this.lineSegmentsIntersect(x1, y1, x2, y2, minX, minY, minX, maxY)) return true;
+    if (lineSegmentsIntersect(x1, y1, x2, y2, minX, minY, minX, maxY)) return true;
     // Right edge
-    if (this.lineSegmentsIntersect(x1, y1, x2, y2, maxX, minY, maxX, maxY)) return true;
+    if (lineSegmentsIntersect(x1, y1, x2, y2, maxX, minY, maxX, maxY)) return true;
     // Top edge
-    if (this.lineSegmentsIntersect(x1, y1, x2, y2, minX, minY, maxX, minY)) return true;
+    if (lineSegmentsIntersect(x1, y1, x2, y2, minX, minY, maxX, minY)) return true;
     // Bottom edge
-    if (this.lineSegmentsIntersect(x1, y1, x2, y2, minX, maxY, maxX, maxY)) return true;
+    if (lineSegmentsIntersect(x1, y1, x2, y2, minX, maxY, maxX, maxY)) return true;
 
     return false;
-  }
-
-  /**
-   * Check if two line segments intersect
-   * @returns {Boolean} - True if segments intersect
-   */
-  lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
-    const denom = ((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1));
-
-    if (Math.abs(denom) < 0.0001) {
-      // Lines are parallel - check if they overlap
-      return false;
-    }
-
-    const ua = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))) / denom;
-    const ub = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3))) / denom;
-
-    // Check if intersection point is within both line segments
-    return (ua >= 0 && ua <= 1) && (ub >= 0 && ub <= 1);
   }
 
   /**
@@ -652,45 +642,6 @@ export class RulerPreview {
   }
 
   /**
-   * Get a straight-line path using Bresenham's algorithm
-   * @param {Object} startOffset - Start grid offset
-   * @param {Object} endOffset - End grid offset
-   * @returns {Array} - Array of grid positions
-   */
-  getStraightPath(startOffset, endOffset) {
-    const gridSquares = [];
-    const gridSize = canvas.grid.size;
-
-    const dx = Math.abs(endOffset.i - startOffset.i);
-    const dy = Math.abs(endOffset.j - startOffset.j);
-    const sx = startOffset.i < endOffset.i ? 1 : -1;
-    const sy = startOffset.j < endOffset.j ? 1 : -1;
-    let err = dx - dy;
-
-    let currentI = startOffset.i;
-    let currentJ = startOffset.j;
-
-    while (currentI !== endOffset.i || currentJ !== endOffset.j) {
-      const e2 = 2 * err;
-
-      if (e2 > -dy) {
-        err -= dy;
-        currentI += sx;
-      }
-
-      if (e2 < dx) {
-        err += dx;
-        currentJ += sy;
-      }
-
-      const topLeft = canvas.grid.getTopLeftPoint({ i: currentI, j: currentJ });
-      gridSquares.push({ x: topLeft.x + gridSize / 2, y: topLeft.y + gridSize / 2 });
-    }
-
-    return gridSquares;
-  }
-
-  /**
    * A* pathfinding algorithm to find path around obstacles
    * @param {Object} startOffset - Start grid offset {i, j}
    * @param {Object} endOffset - End grid offset {i, j}
@@ -733,7 +684,7 @@ export class RulerPreview {
 
       // Diagonal movement costs √2 ≈ 1.41 (or 1.5 in some systems)
       if (dx === 1 && dy === 1) {
-        return 1.41;
+        return DIAGONAL_COST;
       }
       return 1;
     };
@@ -813,7 +764,7 @@ export class RulerPreview {
     fScore.set(getKey(startOffset), heuristic(startOffset, endOffset));
 
     let iterations = 0;
-    const maxIterations = 5000; // Prevent infinite loops on large maps
+    const maxIterations = MAX_PATHFINDING_ITERATIONS;
 
     while (openSet.length > 0 && iterations < maxIterations) {
       iterations++;
@@ -1082,7 +1033,7 @@ export class RulerPreview {
       ChatMessage.create({
         content: chatMessage,
         speaker: ChatMessage.getSpeaker({ token: token.document }),
-        type: CONST.CHAT_MESSAGE_TYPES.EMOTE
+        style: CONST.CHAT_MESSAGE_STYLES.EMOTE
       });
 
       debugLog('Movement confirmed and executed');
@@ -1103,10 +1054,10 @@ export class RulerPreview {
   clearPreview() {
     debugLog('Clearing preview');
 
-    // Clear the native ruler
+    // Clear the native ruler (use reset() instead of deprecated clear())
     try {
       if (canvas.controls?.ruler) {
-        canvas.controls.ruler.clear();
+        canvas.controls.ruler.reset();
       }
     } catch (error) {
       console.warn('SharedControl: Error clearing ruler', error);

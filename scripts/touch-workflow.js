@@ -75,13 +75,23 @@ export class TouchWorkflowHandler {
     });
     this.hooks.push({ name: 'preUpdateToken', id: preUpdateHook });
 
-    // Track movement completion
+    // Track lock flag changes
     const updateHook = Hooks.on('updateToken', (tokenDoc, changes, options, userId) => {
       if (!this.isEnabled()) return;
 
-      if (changes.x !== undefined || changes.y !== undefined) {
-        // Movement completed - unlock token
-        this.stateMachine.unlockToken(tokenDoc.id);
+      // Check if lock flag changed on our selected token
+      if (changes.flags?.['shared-control']?.lockedBy !== undefined) {
+        const selectedToken = this.stateMachine.selectedToken;
+        if (selectedToken && selectedToken.document.id === tokenDoc.id) {
+          const newLockData = changes.flags['shared-control'].lockedBy;
+          // If someone else now has the lock, cancel our movement
+          if (newLockData && newLockData.userId !== game.user.id) {
+            debugLog('Lock overridden by another user, canceling movement');
+            const lockingUser = game.users.get(newLockData.userId);
+            ui.notifications.warn(`${lockingUser?.name ?? 'GM'} took control of ${selectedToken.name}`);
+            this.stateMachine.cancelMovement(this.rulerPreview);
+          }
+        }
       }
     });
     this.hooks.push({ name: 'updateToken', id: updateHook });
@@ -105,6 +115,12 @@ export class TouchWorkflowHandler {
    */
   async handleCanvasTap(event) {
     if (!this.isEnabled()) return;
+
+    // Block all canvas interactions for non-GM when controls are locked (GM broadcast mode)
+    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+      debugLog('Controls locked, blocking canvas interaction');
+      return;
+    }
 
     const currentState = this.stateMachine.getState();
 
@@ -153,13 +169,22 @@ export class TouchWorkflowHandler {
     // Handle both mouse and touch events when module is enabled
     if (!this.isEnabled()) return;
 
+    // Block all canvas interactions for non-GM when controls are locked (GM broadcast mode)
+    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+      debugLog('Controls locked, blocking pointer interaction');
+      event.stopPropagation();
+      return;
+    }
+
     // Prevent scroll/zoom in touch-only mode for touch events
     if (this.touchOnlyMode && event.pointerType === 'touch') {
       event.preventDefault();
     }
 
     // Handle multi-touch (cancel on multi-touch)
-    if (event.touches && event.touches.length > 1) {
+    // Check the native DOM event for touch information since PIXI events don't have .touches
+    const nativeEvent = event.nativeEvent || event.data?.originalEvent;
+    if (nativeEvent?.touches && nativeEvent.touches.length > 1) {
       debugLog('Multi-touch detected, canceling');
       this.stateMachine.cancelMovement(this.rulerPreview);
       return;
@@ -202,16 +227,18 @@ export class TouchWorkflowHandler {
     // Store references for cleanup
     this._gestureHandlers = {};
 
-    // Block wheel events on canvas (scroll zoom)
+    // Block wheel events on canvas (scroll zoom) - GM is exempt
     this._gestureHandlers.wheel = (e) => {
+      if (game.user.isGM) return; // GM can always use gestures
       if (e.target.closest('#board') || e.target.closest('canvas')) {
         e.preventDefault();
         e.stopPropagation();
       }
     };
 
-    // Block touch gestures (pinch zoom, pan)
+    // Block touch gestures (pinch zoom, pan) - GM is exempt
     this._gestureHandlers.touchmove = (e) => {
+      if (game.user.isGM) return; // GM can always use gestures
       // Block multi-touch gestures on canvas
       if (e.touches.length > 1) {
         if (e.target.closest('#board') || e.target.closest('canvas')) {
@@ -221,14 +248,16 @@ export class TouchWorkflowHandler {
       }
     };
 
-    // Block gesturestart/gesturechange (Safari)
+    // Block gesturestart/gesturechange (Safari) - GM is exempt
     this._gestureHandlers.gesturestart = (e) => {
+      if (game.user.isGM) return; // GM can always use gestures
       if (e.target.closest('#board') || e.target.closest('canvas')) {
         e.preventDefault();
       }
     };
 
     this._gestureHandlers.gesturechange = (e) => {
+      if (game.user.isGM) return; // GM can always use gestures
       if (e.target.closest('#board') || e.target.closest('canvas')) {
         e.preventDefault();
       }
