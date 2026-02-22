@@ -16,6 +16,7 @@ export class OverlayControls {
     this.container = null;
     this.controlPanel = null;
     this.lockButton = null;
+    this.softLockButton = null;
     this.broadcastButton = null;
     this.gmModeButton = null;
     this.blackoutButton = null;
@@ -24,6 +25,7 @@ export class OverlayControls {
     this.panInterval = null;
     this.isVisible = false;
     this.isLocked = false;
+    this.isSoftLocked = false;
     this.isBroadcasting = false;
     this.isGmNormalMode = false;
     this.isBlackout = false;
@@ -125,12 +127,22 @@ export class OverlayControls {
       buttonRow.appendChild(this.gmModeButton);
     }
 
+    // Create soft lock button (only for users with permission)
+    if (this.canSeeLockButton()) {
+      this.softLockButton = document.createElement('button');
+      this.softLockButton.className = 'shared-control-btn shared-control-soft-lock-btn';
+      this.softLockButton.dataset.action = 'toggle-soft-lock';
+      this.softLockButton.title = 'Soft Lock (block canvas, allow UI)';
+      this.softLockButton.innerHTML = '<i class="fas fa-shield-alt"></i>';
+      buttonRow.appendChild(this.softLockButton);
+    }
+
     // Create lock button (only for users with permission)
     if (this.canSeeLockButton()) {
       this.lockButton = document.createElement('button');
       this.lockButton.className = 'shared-control-btn shared-control-lock-btn';
       this.lockButton.dataset.action = 'toggle-lock';
-      this.lockButton.title = 'Lock/Unlock Controls';
+      this.lockButton.title = 'Hard Lock (block everything)';
       this.lockButton.innerHTML = '<i class="fas fa-lock-open"></i>';
       buttonRow.appendChild(this.lockButton);
     }
@@ -177,6 +189,10 @@ export class OverlayControls {
     // Apply current lock state
     const isLocked = game.settings.get('shared-control', 'controlsLocked');
     this.updateLockState(isLocked);
+
+    // Apply current soft lock state
+    const isSoftLocked = game.settings.get('shared-control', 'softLocked');
+    this.updateSoftLockState(isSoftLocked);
 
     // Apply current broadcast state
     const isBroadcasting = game.settings.get('shared-control', 'broadcastMode');
@@ -277,6 +293,11 @@ export class OverlayControls {
       return;
     }
 
+    if (action === 'toggle-soft-lock') {
+      if (isStart) this.toggleSoftLock();
+      return;
+    }
+
     if (action === 'toggle-broadcast') {
       if (isStart) this.toggleBroadcast();
       return;
@@ -292,8 +313,8 @@ export class OverlayControls {
       return;
     }
 
-    // All other actions are blocked when locked (except for GM)
-    if (this.isLocked && !game.user.isGM) {
+    // All other actions are blocked when locked or soft-locked (except for GM)
+    if ((this.isLocked || this.isSoftLocked) && !game.user.isGM) {
       return;
     }
 
@@ -395,6 +416,58 @@ export class OverlayControls {
     const newState = !this.isLocked;
     game.settings.set('shared-control', 'controlsLocked', newState);
     debugLog('Controls lock toggled:', newState);
+  }
+
+  /**
+   * Toggle the soft lock state (blocks canvas but allows UI)
+   */
+  toggleSoftLock() {
+    if (!this.canSeeLockButton()) return;
+
+    const newState = !this.isSoftLocked;
+    game.settings.set('shared-control', 'softLocked', newState);
+    debugLog('Soft lock toggled:', newState);
+  }
+
+  /**
+   * Update the soft lock state
+   * Blocks canvas interactions but leaves Foundry UI accessible
+   * @param {Boolean} isSoftLocked - Whether soft lock is active
+   */
+  updateSoftLockState(isSoftLocked) {
+    this.isSoftLocked = isSoftLocked;
+
+    if (this.controlPanel) {
+      // GM is never visually locked
+      if (isSoftLocked && !game.user.isGM) {
+        this.controlPanel.classList.add('soft-locked');
+      } else {
+        this.controlPanel.classList.remove('soft-locked');
+      }
+    }
+
+    if (this.softLockButton) {
+      if (isSoftLocked) {
+        this.softLockButton.innerHTML = '<i class="fas fa-shield-alt"></i>';
+        this.softLockButton.classList.add('active');
+        this.softLockButton.title = 'Soft Lock Active (click to unlock)';
+      } else {
+        this.softLockButton.innerHTML = '<i class="fas fa-shield-alt"></i>';
+        this.softLockButton.classList.remove('active');
+        this.softLockButton.title = 'Soft Lock (block canvas, allow UI)';
+      }
+    }
+
+    // Setup or remove canvas-only blocking for non-GM users
+    if (!game.user.isGM && game.sharedControl?.touchWorkflow) {
+      if (isSoftLocked) {
+        game.sharedControl.touchWorkflow.setupSoftLockBlocking();
+      } else {
+        game.sharedControl.touchWorkflow.removeSoftLockBlocking();
+      }
+    }
+
+    debugLog('Soft lock state updated:', isSoftLocked, '(GM exempt:', game.user.isGM, ')');
   }
 
   /**
@@ -845,6 +918,7 @@ export class OverlayControls {
     }
 
     this.controlPanel = null;
+    this.softLockButton = null;
     this.isVisible = false;
 
     debugLog('Overlay controls destroyed');

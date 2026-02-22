@@ -92,6 +92,21 @@ export function registerSettings() {
     requiresReload: true
   });
 
+  // World setting: Soft lock state (blocks canvas but allows UI)
+  game.settings.register('shared-control', 'softLocked', {
+    name: 'Soft Locked',
+    hint: 'Internal setting to track soft lock state (canvas only)',
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: value => {
+      if (game.sharedControl?.overlayControls) {
+        game.sharedControl.overlayControls.updateSoftLockState(value);
+      }
+    }
+  });
+
   // World setting: Controls locked state
   game.settings.register('shared-control', 'controlsLocked', {
     name: 'Controls Locked',
