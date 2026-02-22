@@ -27,12 +27,15 @@ A Foundry VTT v13 module that enables intuitive touch screen interaction for tok
 - **Customizable Position**: Place controls on left or right side at top, center, or bottom
 - **Adjustable Button Size**: Configure button size for different screen sizes
 - **Auto-Fade**: Controls fade when idle and reappear on interaction
-- **Lock Controls**: Prevent players from moving tokens or interacting with canvas
-- **Visual Button States**: Active buttons glow with pulsing animations (red for lock, green for broadcast, gray for blackout)
+- **Hard Lock**: Prevent players from moving tokens or interacting with anything (full lockdown)
+- **Soft Lock**: Block canvas interactions (pan/zoom/token movement) while leaving the Foundry UI accessible (sidebar, character sheets, hotbar, chat, dice rolls)
+- **Visual Button States**: Active buttons glow with pulsing animations (red for hard lock, purple for soft lock, green for broadcast, gray for blackout)
 
 ### GM Controls
 - **Broadcast Mode**: Sync GM's view to all players with full interaction lock
 - **Blackout Mode**: Hide the entire screen from players (shows black overlay)
+- **Soft Lock**: Block canvas only — players can still open character sheets, roll dice, and use the sidebar
+- **Hard Lock**: Full lockdown — blocks all player interaction
 - **GM Normal Mode**: Toggle between tap workflow and standard Foundry drag-and-drop
 - **GM Exemption**: GM is always exempt from all locks and restrictions
 
@@ -115,7 +118,7 @@ Access settings via **Configure Settings** → **Module Settings** → **SharedC
 - **Track Movement Distance**: Color-code paths based on character speed (default: enabled)
 - **Animation Speed**: Token movement animation speed in ms per grid square (default: 200ms)
 - **Enable Touch Gestures**: Allow pinch-zoom and swipe-pan on canvas (default: disabled)
-- **Lock Button Visibility**: Minimum role required to see/use the lock button (default: GM only)
+- **Lock Button Visibility**: Minimum role required to see/use the lock buttons — applies to both Soft Lock and Hard Lock (default: GM only)
 - **Debug Mode**: Enable verbose console logging for troubleshooting
 
 #### User Settings
@@ -279,6 +282,15 @@ This module is licensed under the MIT License. See LICENSE file for details.
 - **Special Thanks**: The Foundry VTT community for testing and feedback
 
 ## Changelog
+
+### Version 1.6.0-rc.1 (2026-02-22)
+
+- **Soft Lock**: New purple shield button that blocks canvas interactions (pan/zoom/token movement) while leaving the Foundry UI fully accessible — sidebar, character sheets, hotbar, chat, and dice rolls all remain usable. Independent from the existing Hard Lock. (#5)
+- **Fix erratic tap behavior**: Replaced manual coordinate conversion with Foundry's `canvasCoordinatesFromClient` API to fix tap accuracy on HiDPI/Retina displays and scaled displays
+- **Prevent accidental double-tap confirmations**: Added 250ms minimum time gate between preview and confirmation taps
+- **Fix race condition in token selection**: Added re-entry guard to prevent state corruption during async operations
+- **Fix event propagation**: Canvas taps handled by the module now stop propagation to prevent Foundry's handlers from interfering
+- **Block input during movement**: Taps are now rejected while a movement animation is executing
 
 ### Version 1.5.0 (2025-01-06)
 
