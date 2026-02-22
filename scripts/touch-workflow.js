@@ -125,6 +125,12 @@ export class TouchWorkflowHandler {
 
     const currentState = this.stateMachine.getState();
 
+    // Block taps during movement execution to prevent state confusion
+    if (currentState === States.EXECUTING_MOVEMENT) {
+      debugLog('Movement executing, ignoring tap');
+      return;
+    }
+
     // Only handle canvas taps in AWAITING_DESTINATION or PREVIEWING_PATH states
     if (currentState !== States.AWAITING_DESTINATION &&
         currentState !== States.PREVIEWING_PATH) {
@@ -192,11 +198,25 @@ export class TouchWorkflowHandler {
       return;
     }
 
+    // Block taps during movement execution
+    const currentState = this.stateMachine.getState();
+    if (currentState === States.EXECUTING_MOVEMENT) {
+      debugLog('Movement executing, blocking pointer interaction');
+      event.stopPropagation();
+      return;
+    }
+
     // Check if tap is on a token (handled separately) or on canvas
     const target = event.target;
     const isToken = target?.document?.documentName === 'Token';
 
     if (!isToken) {
+      // Stop propagation when module is handling destination/confirmation taps
+      // to prevent Foundry's canvas handler from interfering (deselecting tokens, panning, etc.)
+      if (currentState === States.AWAITING_DESTINATION ||
+          currentState === States.PREVIEWING_PATH) {
+        event.stopPropagation();
+      }
       // Canvas tap - handle destination selection (works for both mouse and touch)
       this.handleCanvasTap(event);
     }
