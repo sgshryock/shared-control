@@ -283,7 +283,7 @@ This module is licensed under the MIT License. See LICENSE file for details.
 
 ## Changelog
 
-### Version 1.6.0-rc.1 (2026-02-22)
+### Version 1.6.0 (2026-04-23)
 
 - **Soft Lock**: New purple shield button that blocks canvas interactions (pan/zoom/token movement) while leaving the Foundry UI fully accessible — sidebar, character sheets, hotbar, chat, and dice rolls all remain usable. Independent from the existing Hard Lock. (#5)
 - **Fix erratic tap behavior**: Replaced manual coordinate conversion with Foundry's `canvasCoordinatesFromClient` API to fix tap accuracy on HiDPI/Retina displays and scaled displays
