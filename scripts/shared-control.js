@@ -3,7 +3,7 @@
  * Main module entry point
  *
  * @author Gordon Shryock
- * @version 1.6.0
+ * @version 1.7.0-rc.1
  */
 
 import { registerSettings } from './settings.js';

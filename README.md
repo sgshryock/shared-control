@@ -1,6 +1,6 @@
 # SharedControl - Touch Screen Token Movement
 
-A Foundry VTT v13 module that enables intuitive touch screen interaction for token movement with physical miniatures. Perfect for tabletop gaming setups with touch screens where players can interact with both physical minis and their digital tokens.
+A Foundry VTT module (v13 primary, v14 compatible) that enables intuitive touch screen interaction for token movement with physical miniatures. Perfect for tabletop gaming setups with touch screens where players can interact with both physical minis and their digital tokens.
 
 ## Features
 
@@ -193,7 +193,7 @@ SharedControl is designed to work with all game systems:
 ### Module Not Working
 
 - ✅ Check that "Enable SharedControl" is turned on in settings
-- ✅ Ensure you're using Foundry VTT v13 or higher
+- ✅ Ensure you're using Foundry VTT v13 or v14
 - ✅ Reload Foundry after enabling the module
 - ✅ Check browser console (F12) for error messages
 
@@ -262,7 +262,7 @@ Contributions are welcome! Please:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test with Foundry VTT v13
+4. Test with Foundry VTT v13 (primary) and v14 if possible
 5. Submit a pull request
 
 ## Support
@@ -278,10 +278,15 @@ This module is licensed under the MIT License. See LICENSE file for details.
 ## Credits
 
 - **Author**: Gordon Shryock
-- **Built For**: Foundry VTT v13
+- **Built For**: Foundry VTT v13 (primary), v14 compatible
 - **Special Thanks**: The Foundry VTT community for testing and feedback
 
 ## Changelog
+
+### Version 1.7.0-rc.1 (2026-04-23)
+
+- **Foundry v14 compatibility**: Module now declares `verified: "14"` while retaining `minimum: "13"` — v13 remains the primary supported version. v14 support is release-candidate quality and benefits from real-world testing.
+- **Ruler cleanup hardening**: `clearPreview()` now silently no-ops if the native ruler's `reset()` is absent (v14 reshaped the ruler surface), instead of logging a warning on every movement cancel.
 
 ### Version 1.6.0 (2026-04-23)
 

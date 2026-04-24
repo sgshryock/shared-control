@@ -1054,11 +1054,10 @@ export class RulerPreview {
   clearPreview() {
     debugLog('Clearing preview');
 
-    // Clear the native ruler (use reset() instead of deprecated clear())
+    // Clear the native ruler. v14 reshaped the ruler surface, so probe for
+    // reset() before calling — silent no-op if absent rather than a warning.
     try {
-      if (canvas.controls?.ruler) {
-        canvas.controls.ruler.reset();
-      }
+      canvas.controls?.ruler?.reset?.();
     } catch (error) {
       console.warn('SharedControl: Error clearing ruler', error);
     }
