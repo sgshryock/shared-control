@@ -116,13 +116,20 @@ export class TouchWorkflowHandler {
   async handleCanvasTap(event) {
     if (!this.isEnabled()) return;
 
-    // Block all canvas interactions for non-GM when controls are locked (GM broadcast mode)
-    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+    // Block all canvas interactions for non-GM when controls are locked or soft-locked
+    if (!game.user.isGM && (game.settings.get('shared-control', 'controlsLocked') ||
+        game.settings.get('shared-control', 'softLocked'))) {
       debugLog('Controls locked, blocking canvas interaction');
       return;
     }
 
     const currentState = this.stateMachine.getState();
+
+    // Block taps during movement execution to prevent state confusion
+    if (currentState === States.EXECUTING_MOVEMENT) {
+      debugLog('Movement executing, ignoring tap');
+      return;
+    }
 
     // Only handle canvas taps in AWAITING_DESTINATION or PREVIEWING_PATH states
     if (currentState !== States.AWAITING_DESTINATION &&
@@ -169,8 +176,9 @@ export class TouchWorkflowHandler {
     // Handle both mouse and touch events when module is enabled
     if (!this.isEnabled()) return;
 
-    // Block all canvas interactions for non-GM when controls are locked (GM broadcast mode)
-    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+    // Block all canvas interactions for non-GM when controls are locked or soft-locked
+    if (!game.user.isGM && (game.settings.get('shared-control', 'controlsLocked') ||
+        game.settings.get('shared-control', 'softLocked'))) {
       debugLog('Controls locked, blocking pointer interaction');
       event.stopPropagation();
       return;
@@ -190,11 +198,25 @@ export class TouchWorkflowHandler {
       return;
     }
 
+    // Block taps during movement execution
+    const currentState = this.stateMachine.getState();
+    if (currentState === States.EXECUTING_MOVEMENT) {
+      debugLog('Movement executing, blocking pointer interaction');
+      event.stopPropagation();
+      return;
+    }
+
     // Check if tap is on a token (handled separately) or on canvas
     const target = event.target;
     const isToken = target?.document?.documentName === 'Token';
 
     if (!isToken) {
+      // Stop propagation when module is handling destination/confirmation taps
+      // to prevent Foundry's canvas handler from interfering (deselecting tokens, panning, etc.)
+      if (currentState === States.AWAITING_DESTINATION ||
+          currentState === States.PREVIEWING_PATH) {
+        event.stopPropagation();
+      }
       // Canvas tap - handle destination selection (works for both mouse and touch)
       this.handleCanvasTap(event);
     }
@@ -288,6 +310,71 @@ export class TouchWorkflowHandler {
   }
 
   /**
+   * Setup soft lock blocking - blocks canvas gestures without a full-screen overlay
+   * Only installed for non-GM users when soft lock is active
+   */
+  setupSoftLockBlocking() {
+    // Don't double-install
+    if (this._softLockHandlers) return;
+
+    debugLog('Setting up soft lock blocking');
+    this._softLockHandlers = {};
+
+    // Block wheel events on canvas (scroll zoom)
+    this._softLockHandlers.wheel = (e) => {
+      if (e.target.closest('#board') || e.target.closest('canvas')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    // Block touch gestures (pinch zoom, pan)
+    this._softLockHandlers.touchmove = (e) => {
+      if (e.touches.length > 1) {
+        if (e.target.closest('#board') || e.target.closest('canvas')) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+
+    // Block gesturestart/gesturechange (Safari)
+    this._softLockHandlers.gesturestart = (e) => {
+      if (e.target.closest('#board') || e.target.closest('canvas')) {
+        e.preventDefault();
+      }
+    };
+
+    this._softLockHandlers.gesturechange = (e) => {
+      if (e.target.closest('#board') || e.target.closest('canvas')) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('wheel', this._softLockHandlers.wheel, { passive: false, capture: true });
+    document.addEventListener('touchmove', this._softLockHandlers.touchmove, { passive: false, capture: true });
+    document.addEventListener('gesturestart', this._softLockHandlers.gesturestart, { passive: false });
+    document.addEventListener('gesturechange', this._softLockHandlers.gesturechange, { passive: false });
+
+    debugLog('Soft lock blocking enabled');
+  }
+
+  /**
+   * Remove soft lock blocking handlers
+   */
+  removeSoftLockBlocking() {
+    if (!this._softLockHandlers) return;
+
+    document.removeEventListener('wheel', this._softLockHandlers.wheel, { capture: true });
+    document.removeEventListener('touchmove', this._softLockHandlers.touchmove, { capture: true });
+    document.removeEventListener('gesturestart', this._softLockHandlers.gesturestart);
+    document.removeEventListener('gesturechange', this._softLockHandlers.gesturechange);
+
+    this._softLockHandlers = null;
+    debugLog('Soft lock blocking disabled');
+  }
+
+  /**
    * Check if module is enabled
    */
   isEnabled() {
@@ -311,6 +398,9 @@ export class TouchWorkflowHandler {
 
     // Remove gesture blocking
     this.removeGestureBlocking();
+
+    // Remove soft lock blocking
+    this.removeSoftLockBlocking();
 
     // Restore cursor
     document.body.style.cursor = 'default';

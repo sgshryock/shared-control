@@ -3,7 +3,7 @@
  * Main module entry point
  *
  * @author Gordon Shryock
- * @version 1.4.0
+ * @version 1.6.0
  */
 
 import { registerSettings } from './settings.js';
@@ -215,8 +215,9 @@ function wrapTokenMethodsEarly() {
       return originalClickLeft.call(this, event);
     }
 
-    // Block all token interactions for non-GM when controls are locked (GM broadcast mode)
-    if (!game.user.isGM && game.settings.get('shared-control', 'controlsLocked')) {
+    // Block all token interactions for non-GM when controls are locked or soft-locked
+    if (!game.user.isGM && (game.settings.get('shared-control', 'controlsLocked') ||
+        game.settings.get('shared-control', 'softLocked'))) {
       debugLog('Controls locked, blocking token interaction');
       event.stopPropagation();
       return false;

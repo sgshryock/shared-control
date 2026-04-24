@@ -239,15 +239,28 @@ export function lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
 
 /**
  * Convert screen coordinates to canvas coordinates
+ * Uses Foundry's built-in API which correctly handles HiDPI/Retina displays,
+ * device pixel ratio, and CSS transforms.
  * @param {Number} clientX - Screen X coordinate
  * @param {Number} clientY - Screen Y coordinate
  * @returns {Object} - Canvas position {x, y}
  */
 export function screenToCanvas(clientX, clientY) {
+  // Foundry v13 API: handles devicePixelRatio, CSS transforms, and full transform chain
+  if (canvas.canvasCoordinatesFromClient) {
+    return canvas.canvasCoordinatesFromClient({ x: clientX, y: clientY });
+  }
+
+  // Fallback for older versions: use PIXI's toLocal which handles the full transform
+  if (canvas.stage) {
+    const point = canvas.stage.toLocal(new PIXI.Point(clientX, clientY));
+    return { x: point.x, y: point.y };
+  }
+
+  // Last resort: manual transform inversion
   const transform = canvas.stage.worldTransform;
   const canvasX = (clientX - transform.tx) / transform.a;
   const canvasY = (clientY - transform.ty) / transform.d;
-
   return { x: canvasX, y: canvasY };
 }
 

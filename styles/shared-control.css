@@ -469,8 +469,48 @@
     margin-bottom: 16px;
   }
 
+  /* Soft lock button */
+  .shared-control-soft-lock-btn {
+    background: rgba(60, 60, 80, 0.7);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .shared-control-soft-lock-btn.active {
+    background: rgba(100, 60, 180, 0.8);
+    border-color: #9966ff;
+    color: #9966ff;
+    animation: shared-control-soft-lock-pulse 1.5s ease-in-out infinite;
+  }
+
+  .shared-control-soft-lock-btn:hover {
+    background: rgba(80, 80, 100, 0.8);
+  }
+
+  .shared-control-soft-lock-btn.active:hover {
+    background: rgba(120, 80, 200, 0.9);
+  }
+
+  @keyframes shared-control-soft-lock-pulse {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(153, 102, 255, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(153, 102, 255, 0.8);
+    }
+  }
+
+  /* Soft locked state - dim pan/zoom but keep lock buttons active */
+  .shared-control-panel.soft-locked .shared-control-btn:not(.shared-control-lock-btn):not(.shared-control-soft-lock-btn):not(.shared-control-broadcast-btn):not(.shared-control-gm-mode-btn):not(.shared-control-blackout-btn) {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .shared-control-panel.soft-locked {
+    border-color: rgba(153, 102, 255, 0.5);
+  }
+
   /* Locked state - dim all buttons except lock */
-  .shared-control-panel.locked .shared-control-btn:not(.shared-control-lock-btn) {
+  .shared-control-panel.locked .shared-control-btn:not(.shared-control-lock-btn):not(.shared-control-soft-lock-btn) {
     opacity: 0.4;
     pointer-events: none;
   }

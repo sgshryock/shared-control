@@ -66,6 +66,12 @@
       "noPermission": "You do not have permission to move that token.",
       "tokenLocked": "{user} is currently moving that token."
     },
+    "softLock": {
+      "tooltip": "Soft Lock (block canvas, allow UI)",
+      "tooltipActive": "Soft Lock Active (click to unlock)",
+      "enabled": "Soft lock enabled - canvas blocked, UI accessible",
+      "disabled": "Soft lock disabled"
+    },
     "ui": {
       "confirmTitle": "Confirm Movement",
       "distance": "Distance",

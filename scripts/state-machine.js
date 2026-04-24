@@ -22,6 +22,7 @@ export class MovementStateMachine {
     this.lastTapPosition = null;
     this.lastTapTime = 0;
     this.errorTimeout = null;
+    this._processingSelection = false;
   }
 
   /**
@@ -45,6 +46,27 @@ export class MovementStateMachine {
    * @returns {Boolean} - True if selection successful
    */
   async selectToken(token, rulerPreview) {
+    // Prevent re-entrant calls during async operations (e.g., setFlag roundtrip)
+    if (this._processingSelection) {
+      debugLog('selectToken re-entry blocked');
+      return false;
+    }
+    this._processingSelection = true;
+
+    try {
+      return await this._selectTokenInner(token, rulerPreview);
+    } finally {
+      this._processingSelection = false;
+    }
+  }
+
+  /**
+   * Inner implementation of selectToken (separated for re-entry guard)
+   * @param {Token} token - The token to select
+   * @param {RulerPreview} rulerPreview - The ruler preview handler for visual feedback
+   * @returns {Boolean} - True if selection successful
+   */
+  async _selectTokenInner(token, rulerPreview) {
     // Validate permissions
     if (!utils.canMoveToken(token)) {
       ui.notifications.warn(game.i18n.localize('shared-control.notifications.noPermission'));
@@ -238,15 +260,21 @@ export class MovementStateMachine {
 
   /**
    * Check if a tap is at the same location as the last tap
-   * No timeout - user can cancel by tapping the token instead
+   * Requires a minimum time gap to prevent accidental double-tap confirmations
    * @param {Object} position - Position to check {x, y}
-   * @returns {Boolean} - True if same location
+   * @returns {Boolean} - True if same location and enough time has passed
    */
   isSameTapLocation(position) {
     if (!this.lastTapPosition) return false;
 
-    // No timeout check - just verify it's the same location
-    // User can cancel by tapping the selected token
+    // Require at least 250ms between preview tap and confirmation tap
+    // to prevent accidental double-taps from immediately confirming movement
+    const timeSinceLastTap = Date.now() - this.lastTapTime;
+    if (timeSinceLastTap < 250) {
+      debugLog('Confirmation tap rejected - too fast:', timeSinceLastTap, 'ms');
+      return false;
+    }
+
     return utils.isSameLocation(position, this.lastTapPosition);
   }
 
@@ -281,6 +309,7 @@ export class MovementStateMachine {
     this.previewDestination = null;
     this.lastTapPosition = null;
     this.lastTapTime = 0;
+    this._processingSelection = false;
 
     if (this.errorTimeout) {
       clearTimeout(this.errorTimeout);
